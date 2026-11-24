@@ -1,0 +1,76 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - navigation "Main navigation" [ref=f4e3]:
+      - generic [ref=f4e4]: Smart Irrigation
+      - navigation [ref=f4e10]:
+        - link "Dashboard" [ref=f4e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Devices" [ref=f4e18] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [ref=f4e23] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=f4e28] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [ref=f4e33] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=f4e38]:
+        - generic [ref=f4e39]: Connected
+        - generic [ref=f4e42]: v1.0.0
+    - main [ref=f4e43]:
+      - generic [ref=f4e44]:
+        - generic [ref=f4e45]:
+          - heading "Commands" [level=1] [ref=f4e448]
+          - navigation "Breadcrumb" [ref=f4e47]:
+            - generic [ref=f4e449]: Smart Irrigation
+            - generic [ref=f4e450]: /
+            - generic [ref=f4e451]: Manual control & schedules
+        - generic [ref=f4e51]:
+          - generic [ref=f4e52]:
+            - generic [ref=f4e53]: Select Device
+            - combobox "Select device" [ref=f4e54] [cursor=pointer]:
+              - option "ESP32-DEMO-001" [selected]
+          - button "Toggle theme" [ref=f4e55] [cursor=pointer]
+          - button "Refresh data" [ref=f4e59] [cursor=pointer]
+      - region [ref=f4e452]:
+        - heading "Command Control" [level=2] [ref=f4e454]
+        - generic [ref=f4e455]:
+          - generic [ref=f4e456]:
+            - heading "Quick Actions" [level=3] [ref=f4e457]
+            - paragraph [ref=f4e458]: Send immediate commands to the selected device
+            - generic [ref=f4e459]:
+              - button "Start irrigation" [active] [ref=f4e460] [cursor=pointer]:
+                - generic [ref=f4e463]: Start
+              - button "Stop irrigation" [ref=f4e464] [cursor=pointer]:
+                - generic [ref=f4e467]: Stop
+              - button "Emergency stop" [ref=f4e468] [cursor=pointer]:
+                - generic [ref=f4e473]: Emergency Stop
+              - button "Clear safety lock" [ref=f4e474] [cursor=pointer]:
+                - generic [ref=f4e478]: Clear Safety
+          - generic [ref=f4e479]:
+            - generic [ref=f4e480]:
+              - heading "Scheduled Irrigation" [level=3] [ref=f4e481]
+              - button "Add Schedule" [ref=f4e482] [cursor=pointer]
+            - paragraph [ref=f4e485]: No schedules configured for this device.
+          - generic [ref=f4e486]:
+            - heading "Command History" [level=3] [ref=f4e487]
+            - grid [ref=f4e489]:
+              - rowgroup [ref=f4e490]:
+                - row [ref=f4e491]:
+                  - columnheader "Time" [ref=f4e492]
+                  - columnheader "Device" [ref=f4e493]
+                  - columnheader "Command" [ref=f4e494]
+                  - columnheader "Status" [ref=f4e495]
+                  - columnheader "Acknowledged" [ref=f4e496]
+                  - columnheader "Response" [ref=f4e497]
+              - rowgroup [ref=f4e498]:
+                - row [ref=f4e501]:
+                  - gridcell "Oct 10, 03:01:53 PM" [ref=f4e502]
+                  - gridcell "ESP32-DEMO-001" [ref=f4e503]
+                  - gridcell "start" [ref=f4e504]
+                  - gridcell "pending" [ref=f4e506]
+                  - gridcell "—" [ref=f4e508]
+                  - gridcell "—" [ref=f4e509]
+  - generic "Notifications" [ref=f4e510]:
+    - status [ref=f4e511]:
+      - generic [ref=f4e516]: start issued (id cmd-f731769c)
+      - button "Dismiss" [ref=f4e518] [cursor=pointer]

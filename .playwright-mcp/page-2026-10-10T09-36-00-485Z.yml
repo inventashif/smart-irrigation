@@ -1,0 +1,128 @@
+- generic [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - navigation "Main navigation" [ref=f5e3]:
+      - generic [ref=f5e4]: Smart Irrigation
+      - navigation [ref=f5e10]:
+        - link "Dashboard" [ref=f5e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Devices" [ref=f5e18] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [ref=f5e23] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=f5e28] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [active] [ref=f5e33] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=f5e38]:
+        - generic [ref=f5e39]: Connected
+        - generic [ref=f5e42]: v1.0.0
+    - main [ref=f5e43]:
+      - generic [ref=f5e44]:
+        - generic [ref=f5e45]:
+          - heading "Settings" [level=1] [ref=f5e46]
+          - navigation "Breadcrumb" [ref=f5e47]:
+            - generic [ref=f5e48]: Smart Irrigation
+            - generic [ref=f5e49]: /
+            - generic [ref=f5e50]: Dashboard preferences
+        - generic [ref=f5e51]:
+          - generic [ref=f5e52]:
+            - generic [ref=f5e53]: Select Device
+            - combobox "Select device" [ref=f5e54] [cursor=pointer]:
+              - option "ESP32-DEMO-001" [selected]
+          - button "Toggle theme" [ref=f5e55] [cursor=pointer]
+          - button "Refresh data" [ref=f5e58] [cursor=pointer]
+      - region [ref=f5e64]:
+        - heading "Settings" [level=2] [ref=f5e66]
+        - generic [ref=f5e67]:
+          - generic [ref=f5e68]:
+            - heading "General" [level=3] [ref=f5e69]
+            - generic [ref=f5e70]:
+              - generic [ref=f5e71]: Poll Interval (seconds)
+              - spinbutton "Poll Interval (seconds)" [ref=f5e72]: "5"
+              - paragraph [ref=f5e73]: How often the dashboard refreshes data from the server
+            - generic [ref=f5e74]:
+              - generic [ref=f5e75]: Chart Data Retention
+              - combobox "Chart Data Retention" [ref=f5e76]:
+                - option "1 Hour"
+                - option "6 Hours" [selected]
+                - option "24 Hours"
+                - option "7 Days"
+              - paragraph [ref=f5e77]: Maximum time range for chart data
+            - generic [ref=f5e78]:
+              - generic [ref=f5e79]: Max Chart Data Points
+              - spinbutton "Max Chart Data Points" [ref=f5e80]: "300"
+              - paragraph [ref=f5e81]: Maximum number of points to display on charts (performance)
+            - generic [ref=f5e83] [cursor=pointer]:
+              - checkbox "Auto-refresh dashboard" [checked] [ref=f5e84]
+              - text: Auto-refresh dashboard
+            - generic [ref=f5e86] [cursor=pointer]:
+              - checkbox "Show toast notifications" [checked] [ref=f5e87]
+              - text: Show toast notifications
+          - generic [ref=f5e88]:
+            - heading "Device Configuration" [level=3] [ref=f5e89]
+            - generic [ref=f5e90]:
+              - generic [ref=f5e91]: Default Device
+              - combobox "Default device" [ref=f5e92]:
+                - option "Select a device…" [selected]
+                - option "ESP32-DEMO-001"
+              - paragraph [ref=f5e93]: Device to select automatically on page load
+            - generic [ref=f5e94]:
+              - generic [ref=f5e95]: Device Offline Timeout (seconds)
+              - spinbutton "Device Offline Timeout (seconds)" [ref=f5e96]: "60"
+              - paragraph [ref=f5e97]: Time before a device is marked as offline
+            - generic [ref=f5e99] [cursor=pointer]:
+              - checkbox "Auto-connect to last device" [checked] [ref=f5e100]
+              - text: Auto-connect to last device
+          - generic [ref=f5e101]:
+            - heading "Thresholds & Alerts" [level=3] [ref=f5e102]
+            - paragraph [ref=f5e104]: Select a device to configure thresholds
+          - generic [ref=f5e105]:
+            - heading "Appearance" [level=3] [ref=f5e106]
+            - generic [ref=f5e107]:
+              - generic [ref=f5e108]: Theme
+              - combobox "Theme" [ref=f5e109]:
+                - option "Dark" [selected]
+                - option "Light"
+                - option "System"
+            - generic [ref=f5e110]:
+              - generic [ref=f5e111]: Chart Theme
+              - combobox "Chart Theme" [ref=f5e112]:
+                - option "Auto (match UI)" [selected]
+                - option "Dark"
+                - option "Light"
+            - generic [ref=f5e113]:
+              - generic [ref=f5e114]: UI Density
+              - combobox "UI Density" [ref=f5e115]:
+                - option "Comfortable"
+                - option "Compact" [selected]
+                - option "Spacious"
+            - generic [ref=f5e117] [cursor=pointer]:
+              - checkbox "Enable animations" [checked] [ref=f5e118]
+              - text: Enable animations
+            - generic [ref=f5e120] [cursor=pointer]:
+              - checkbox "Reduce motion (accessibility)" [ref=f5e121]
+              - text: Reduce motion (accessibility)
+          - generic [ref=f5e122]:
+            - heading "Data Management" [level=3] [ref=f5e123]
+            - generic [ref=f5e124]:
+              - button [ref=f5e126] [cursor=pointer]: Clear Local Cache
+              - paragraph [ref=f5e129]: Clear cached chart data and device list
+            - generic [ref=f5e130]:
+              - button [ref=f5e132] [cursor=pointer]: Export Settings
+              - paragraph [ref=f5e136]: Download your dashboard settings as JSON
+            - generic [ref=f5e137]:
+              - button "Import Settings" [ref=f5e139] [cursor=pointer]
+              - paragraph [ref=f5e143]: Load previously exported settings
+          - generic [ref=f5e144]:
+            - heading "About" [level=3] [ref=f5e145]
+            - generic [ref=f5e146]:
+              - generic [ref=f5e147]:
+                - generic [ref=f5e148]: Version
+                - generic [ref=f5e149]: 1.0.0
+              - generic [ref=f5e150]:
+                - generic [ref=f5e151]: Backend
+                - generic [ref=f5e152]: 1.1.0
+              - generic [ref=f5e153]:
+                - generic [ref=f5e154]: API Base
+                - generic [ref=f5e155]: http://127.0.0.1:8020
+  - generic "Notifications"

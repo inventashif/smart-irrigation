@@ -1,0 +1,637 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Main navigation" [ref=e3]:
+      - generic [ref=e4]: Smart Irrigation
+      - navigation [ref=e10]:
+        - link "Dashboard" [ref=e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Hardware Lab ESP32" [ref=e18] [cursor=pointer]:
+          - /url: "#simulator"
+          - generic [ref=e23]: Hardware Lab
+          - generic [ref=e24]: ESP32
+        - link "Devices" [ref=e25] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [ref=e30] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=e35] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [ref=e40] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=e45]:
+        - generic [ref=e46]: Connected
+        - generic [ref=e49]: v1.2.0
+    - main [ref=e51]:
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - heading "ESP32 Hardware Lab" [level=1] [ref=e54]
+          - navigation "Breadcrumb" [ref=e55]:
+            - generic [ref=e56]: Smart Irrigation
+            - generic [ref=e57]: /
+            - generic [ref=e58]: Interactive schematic, pin wiring, sliders & weather crawler
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]: Select Device
+            - combobox "Select device" [ref=e62] [cursor=pointer]:
+              - option "ESP32 Field Bench (Sim) (ESP32-DEMO-001)" [selected]
+              - option "ESP32-SAFETY-TEST"
+          - button "Toggle theme" [ref=e63] [cursor=pointer]
+          - button "Refresh data" [ref=e66] [cursor=pointer]
+      - region "ESP32 Hardware Lab and Weather Workbench" [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - generic [ref=e76]: ESP32-DEMO-001 · 192.168.1.42
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - text: "Uptime:"
+                  - strong [ref=e81]: 57s
+                - generic [ref=e82]:
+                  - text: "Pump:"
+                  - strong [ref=e83]: "OFF"
+                - generic [ref=e84]:
+                  - text: "Dispensed:"
+                  - strong [ref=e85]: 0.000 L
+                - generic [ref=e86]:
+                  - text: "Telemetry:"
+                  - strong [ref=e87]: 4.0s
+            - generic [ref=e88]:
+              - group "Physics timewarp speed" [ref=e89]:
+                - button "0.5x" [ref=e90] [cursor=pointer]
+                - button "1x" [ref=e91] [cursor=pointer]
+                - button "5x" [ref=e92] [cursor=pointer]
+                - button "15x" [ref=e93] [cursor=pointer]
+                - button "30x" [ref=e94] [cursor=pointer]
+              - button "Pause Clock" [ref=e95] [cursor=pointer]
+              - button "Reboot MCU" [ref=e96] [cursor=pointer]
+          - generic [ref=e97]:
+            - complementary "Pinout and component wiring" [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]:
+                  - generic [ref=e101]: Pinout & Netlist (30-Pin ESP32)
+                  - generic [ref=e102]: Concrete header pins, passives & terminal pads
+                - generic [ref=e103]: 17 / 17 OK
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - generic [ref=e106]: Fault Injection Drills
+                  - generic [ref=e107]: Instant
+                - generic [ref=e108]:
+                  - button "Restore All Healthy" [ref=e109] [cursor=pointer]
+                  - button "Open Soil Probe" [ref=e110] [cursor=pointer]
+                  - button "DHT22 CRC Fault" [ref=e111] [cursor=pointer]
+                  - button "Jam Flow Rotor" [ref=e112] [cursor=pointer]
+                  - button "Drain Tank (0.5%)" [ref=e113] [cursor=pointer]
+                  - button "Drop Wi-Fi Link" [ref=e114] [cursor=pointer]
+                - generic [ref=e115]:
+                  - 'button "DHT22 CRC Err: OFF" [ref=e116] [cursor=pointer]'
+                  - 'button "Flow Jam: OFF" [ref=e117] [cursor=pointer]'
+              - list [ref=e118]:
+                - listitem [ref=e119]:
+                  - generic [ref=e121]:
+                    - generic [ref=e122]:
+                      - generic [ref=e123]: VIN / 5V (L15)
+                      - generic "5.0V USB / VIN Bus" [ref=e124]
+                    - generic "VIN / 5V (L15) ↔ Relay JD-VCC · Flow Pin 1 · HC-SR04 Pin 1" [ref=e125]: ↳ Relay JD-VCC · Flow Pin 1 · HC-SR04 Pin 1
+                    - generic [ref=e126]:
+                      - generic "USB 5V -> Relay VCC, YF-S201 VCC, HC-SR04 VCC" [ref=e127]
+                      - generic [ref=e128]: 5.02 V
+                  - button "Toggle 5.0V USB / VIN Bus" [pressed] [ref=e129] [cursor=pointer]
+                - listitem [ref=e130]:
+                  - generic [ref=e132]:
+                    - generic [ref=e133]:
+                      - generic [ref=e134]: 3V3 (R15)
+                      - generic "3.3V Regulated Rail" [ref=e135]
+                    - generic "3V3 (R15) ↔ Soil VCC · DHT22 Pin 1 · Rain VCC · LDR Top" [ref=e136]: ↳ Soil VCC · DHT22 Pin 1 · Rain VCC · LDR Top
+                    - generic [ref=e137]:
+                      - generic "AMS1117 3.3V -> Soil, DHT22, Rain, LDR" [ref=e138]
+                      - generic [ref=e139]: 3.30 V
+                  - button "Toggle 3.3V Regulated Rail" [pressed] [ref=e140] [cursor=pointer]
+                - listitem [ref=e141]:
+                  - generic [ref=e143]:
+                    - generic [ref=e144]:
+                      - generic [ref=e145]: GND (L14 / R14)
+                      - generic "Domain A Common Ground" [ref=e146]
+                    - generic "GND (L14 / R14) ↔ All Domain A GND + R2 (20kΩ) + LED K" [ref=e147]: ↳ All Domain A GND + R2 (20kΩ) + LED K
+                    - generic [ref=e148]:
+                      - generic "Shared logic ground (galvanically isolated from 12V-)" [ref=e149]
+                      - generic [ref=e150]: 0.00 V REF
+                  - button "Toggle Domain A Common Ground" [pressed] [ref=e151] [cursor=pointer]
+                - listitem [ref=e152]:
+                  - generic [ref=e154]:
+                    - generic [ref=e155]:
+                      - generic [ref=e156]: GPIO32 (L6)
+                      - generic "Soil Moisture AOUT" [ref=e157]
+                    - generic "GPIO32 (L6) ↔ Soil Probe Pin 3 (AOUT)" [ref=e158]: ↳ Soil Probe Pin 3 (AOUT)
+                    - generic [ref=e159]:
+                      - generic "ADC1_CH4 · 0–3.3V (3000 dry -> 1200 wet)" [ref=e160]
+                      - generic [ref=e161]: 1.83V · 2266 ADC
+                  - button "Toggle Soil Moisture AOUT" [pressed] [ref=e162] [cursor=pointer]
+                - listitem [ref=e163]:
+                  - generic [ref=e165]:
+                    - generic [ref=e166]:
+                      - generic [ref=e167]: GPIO33 (L7)
+                      - generic "DHT22 1-Wire DATA" [ref=e168]
+                    - generic "GPIO33 (L7) ↔ DHT22 Pin 2 (DATA)" [ref=e169]: ↳ DHT22 Pin 2 (DATA)
+                    - generic [ref=e170]:
+                      - generic "1-Wire open-drain bidirectional bus" [ref=e171]
+                      - generic [ref=e172]: 3.3V · 24.0°C
+                  - button "Toggle DHT22 1-Wire DATA" [pressed] [ref=e173] [cursor=pointer]
+                - listitem [ref=e174]:
+                  - generic [ref=e176]:
+                    - generic [ref=e177]:
+                      - generic [ref=e178]: R_PU 4.7kΩ
+                      - generic "DHT22 4.7kΩ Pull-Up" [ref=e179]
+                    - generic "R_PU 4.7kΩ ↔ 3V3 Bus <-> DHT22 DATA (GPIO33)" [ref=e180]: ↳ 3V3 Bus <-> DHT22 DATA (GPIO33)
+                    - generic [ref=e181]:
+                      - generic "Required open-drain pull-up to 3.3V" [ref=e182]
+                      - generic [ref=e183]: 3.30V · 0.7mA
+                  - button "Toggle DHT22 4.7kΩ Pull-Up" [pressed] [ref=e184] [cursor=pointer]
+                - listitem [ref=e185]:
+                  - generic [ref=e187]:
+                    - generic [ref=e188]:
+                      - generic [ref=e189]: GPIO34 (L4)
+                      - generic "Rain Drop Analog AO" [ref=e190]
+                    - generic "GPIO34 (L4) ↔ Rain LM393 Pin 3 (AO)" [ref=e191]: ↳ Rain LM393 Pin 3 (AO)
+                    - generic [ref=e192]:
+                      - generic "ADC1_CH6 input-only (no internal pull-up)" [ref=e193]
+                      - generic [ref=e194]: 3.22V · 3998 ADC
+                  - button "Toggle Rain Drop Analog AO" [pressed] [ref=e195] [cursor=pointer]
+                - listitem [ref=e196]:
+                  - generic [ref=e198]:
+                    - generic [ref=e199]:
+                      - generic [ref=e200]: GPIO35 (L5)
+                      - generic "Ambient Light AO" [ref=e201]
+                    - generic "GPIO35 (L5) ↔ GL5528 LDR + 10kΩ Tap" [ref=e202]: ↳ GL5528 LDR + 10kΩ Tap
+                    - generic [ref=e203]:
+                      - generic "ADC1_CH7 input-only · 10kΩ pull-down to GND" [ref=e204]
+                      - generic [ref=e205]: 2.20V · 23788 lx
+                  - button "Toggle Ambient Light AO" [pressed] [ref=e206] [cursor=pointer]
+                - listitem [ref=e207]:
+                  - generic [ref=e209]:
+                    - generic [ref=e210]:
+                      - generic [ref=e211]: GPIO13 (L13)
+                      - generic "Pump Status LED" [ref=e212]
+                    - generic "GPIO13 (L13) ↔ R_LED 330Ω -> LED Anode (A)" [ref=e213]: ↳ R_LED 330Ω -> LED Anode (A)
+                    - generic [ref=e214]:
+                      - generic "Digital output · Cathode (K) -> Domain A GND" [ref=e215]
+                      - generic [ref=e216]: 0.0V LOW
+                  - button "Toggle Pump Status LED" [pressed] [ref=e217] [cursor=pointer]
+                - listitem [ref=e218]:
+                  - generic [ref=e220]:
+                    - generic [ref=e221]:
+                      - generic [ref=e222]: GPIO27 (L10)
+                      - generic "Relay Driver IN" [ref=e223]
+                    - generic "GPIO27 (L10) ↔ Opto-Relay Pin 2 (IN)" [ref=e224]: ↳ Opto-Relay Pin 2 (IN)
+                    - generic [ref=e225]:
+                      - generic "Active-LOW · HIGH at boot keeps COM->NO open" [ref=e226]
+                      - generic [ref=e227]: 3.3V HIGH (OFF)
+                  - button "Toggle Relay Driver IN" [pressed] [ref=e228] [cursor=pointer]
+                - listitem [ref=e229]:
+                  - generic [ref=e231]:
+                    - generic [ref=e232]:
+                      - generic [ref=e233]: 12V+ -> COM/NO
+                      - generic "12V Isolated Pump Loop" [ref=e234]
+                    - generic "12V+ -> COM/NO ↔ Relay NO -> Pump M+ -> M- -> 12V-" [ref=e235]: ↳ Relay NO -> Pump M+ -> M- -> 12V-
+                    - generic [ref=e236]:
+                      - generic "Isolated high-current loop via Relay COM/NO" [ref=e237]
+                      - generic [ref=e238]: 12.0V OPEN
+                  - button "Toggle 12V Isolated Pump Loop" [pressed] [ref=e239] [cursor=pointer]
+                - listitem [ref=e240]:
+                  - generic [ref=e242]:
+                    - generic [ref=e243]:
+                      - generic [ref=e244]: D1 1N4007
+                      - generic "1N4007 Flyback Diode" [ref=e245]
+                    - generic "D1 1N4007 ↔ Cathode (K) Pump M+ <-> Anode (A) M-" [ref=e246]: ↳ Cathode (K) Pump M+ <-> Anode (A) M-
+                    - generic [ref=e247]:
+                      - generic "Clamps motor turn-off back-EMF across M+/M-" [ref=e248]
+                      - generic [ref=e249]: CLAMP READY (-0.7V)
+                  - button "Toggle 1N4007 Flyback Diode" [pressed] [ref=e250] [cursor=pointer]
+                - listitem [ref=e251]:
+                  - generic [ref=e253]:
+                    - generic [ref=e254]:
+                      - generic [ref=e255]: GPIO25 (L8)
+                      - generic "Flow Sensor Pulse IRQ" [ref=e256]
+                    - generic "GPIO25 (L8) ↔ R1 10kΩ / R2 20kΩ Divider Tap" [ref=e257]: ↳ R1 10kΩ / R2 20kΩ Divider Tap
+                    - generic [ref=e258]:
+                      - generic "5V Hall pulse -> 10kΩ/20kΩ -> 3.34V FALLING ISR" [ref=e259]
+                      - generic [ref=e260]: 3.34V IDLE (0Hz)
+                  - button "Toggle Flow Sensor Pulse IRQ" [pressed] [ref=e261] [cursor=pointer]
+                - listitem [ref=e262]:
+                  - generic [ref=e264]:
+                    - generic [ref=e265]:
+                      - generic [ref=e266]: R2 20kΩ Leg
+                      - generic "Flow Divider 20kΩ GND" [ref=e267]
+                    - generic "R2 20kΩ Leg ↔ GPIO25 Tap -> 20kΩ -> Domain A GND" [ref=e268]: ↳ GPIO25 Tap -> 20kΩ -> Domain A GND
+                    - generic [ref=e269]:
+                      - 'generic "CRITICAL: if open, GPIO25 sees raw 5.0V!" [ref=e270]'
+                      - generic [ref=e271]: 3.34V TAP · 0.17mA
+                  - button "Toggle Flow Divider 20kΩ GND" [pressed] [ref=e272] [cursor=pointer]
+                - listitem [ref=e273]:
+                  - generic [ref=e275]:
+                    - generic [ref=e276]:
+                      - generic [ref=e277]: GPIO26 (L9)
+                      - generic "Ultrasonic TRIG Out" [ref=e278]
+                    - generic "GPIO26 (L9) ↔ HC-SR04 Pin 2 (TRIG)" [ref=e279]: ↳ HC-SR04 Pin 2 (TRIG)
+                    - generic [ref=e280]:
+                      - generic "10µs CMOS trigger pulse (3.3V -> HC-SR04)" [ref=e281]
+                      - generic [ref=e282]: 10µs PULSE
+                  - button "Toggle Ultrasonic TRIG Out" [pressed] [ref=e283] [cursor=pointer]
+                - listitem [ref=e284]:
+                  - generic [ref=e286]:
+                    - generic [ref=e287]:
+                      - generic [ref=e288]: GPIO14 (L11)
+                      - generic "Ultrasonic ECHO In" [ref=e289]
+                    - generic "GPIO14 (L11) ↔ HC-SR04 Pin 3 (ECHO via 1kΩ/2kΩ)" [ref=e290]: ↳ HC-SR04 Pin 3 (ECHO via 1kΩ/2kΩ)
+                    - generic [ref=e291]:
+                      - generic "5V echo -> 1kΩ/2kΩ divider -> 3.3V pulseIn" [ref=e292]
+                      - generic [ref=e293]: 564µs (84.0%)
+                  - button "Toggle Ultrasonic ECHO In" [pressed] [ref=e294] [cursor=pointer]
+                - listitem [ref=e295]:
+                  - generic [ref=e297]:
+                    - generic [ref=e298]:
+                      - generic [ref=e299]: 2.4GHz PCB
+                      - generic "Wi-Fi 802.11n Link" [ref=e300]
+                    - generic "2.4GHz PCB ↔ FastAPI :8000 HTTP" [ref=e301]: ↳ FastAPI :8000 HTTP
+                    - generic [ref=e302]:
+                      - generic "Telemetry POST + Command Poll + Rain-Skip" [ref=e303]
+                      - generic [ref=e304]: RSSI -54dBm
+                  - button "Toggle Wi-Fi 802.11n Link" [pressed] [ref=e305] [cursor=pointer]
+              - generic [ref=e306]:
+                - generic [ref=e309]:
+                  - strong [ref=e310]: "Domain A:"
+                  - text: VIN 5V (L15) · 3V3 (R15) · 4.7kΩ · 10k/20k · 1k/2k
+                - generic [ref=e313]:
+                  - strong [ref=e314]: "Domain B:"
+                  - text: Isolated 12V PSU · Relay COM/NO · 1N4007 clamp
+            - generic [ref=e315]:
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]:
+                    - generic [ref=e319]: ESP32-WROOM-32 Interactive Bench
+                    - generic [ref=e320]: Animated signal buses, opto-relay state & hydraulic loop
+                  - generic [ref=e321]: Weather Sync · 24°C
+                - img "Concrete 30-pin ESP32 DevKit V1 hardware schematic with Domain A and isolated Domain B" [ref=e324]:
+                  - generic [ref=e326]: DOMAIN A · USB 5V (VIN) + 3.3V LOGIC + COMMON GND
+                  - generic [ref=e328]: DOMAIN B · GALVANICALLY ISOLATED 12V DC PUMP
+                  - generic [ref=e333]:
+                    - 'generic "Click to connect / disconnect net: power_3v3" [ref=e334] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: power_5v" [ref=e341] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: gnd_common" [ref=e347] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: rain_sig" [ref=e358] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: light_sig" [ref=e361] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: soil_sig" [ref=e364] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: dht_sig" [ref=e367] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: dht_pullup" [ref=e371] [cursor=pointer]': 4.7k
+                    - 'generic "Click to connect / disconnect net: flow_sig" [ref=e379] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: flow_div_gnd" [ref=e383] [cursor=pointer]':
+                      - generic [ref=e388]:
+                        - generic [ref=e390]: R2
+                        - generic [ref=e391]: 20k
+                    - 'generic "Click to connect / disconnect net: tank_trig" [ref=e392] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: relay_in" [ref=e395] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: tank_echo" [ref=e398] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: led_sig" [ref=e401] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: pump_12v" [ref=e404] [cursor=pointer]'
+                    - 'generic "Click to connect / disconnect net: flyback_diode" [ref=e407] [cursor=pointer]': 1N4007
+                    - 'generic "Click to connect / disconnect net: wifi_link" [ref=e414] [cursor=pointer]'
+                  - generic:
+                    - generic: 10kΩ
+                    - generic: 3.34V
+                  - generic [ref=e417]:
+                    - generic [ref=e419]: Capacitive Soil Probe v1.2
+                    - generic [ref=e420]: TL555C · 0–3.0V -> G32 (L6)
+                    - generic [ref=e423]: AOUT OPEN / NO 3V3
+                    - generic [ref=e424]: Pin 3 -> G32 Open
+                  - generic [ref=e426]: 1:VCC
+                  - generic [ref=e428]: 3:AOUT
+                  - generic [ref=e430]: 2:GND
+                  - generic [ref=e431]:
+                    - generic [ref=e433]: DHT22 (AM2302) 1-Wire
+                    - generic [ref=e434]: Open-Drain -> G33 (L7) + 4.7kΩ
+                    - generic [ref=e435]: 24.0 °C
+                    - generic [ref=e436]: 54.6 %RH
+                    - generic [ref=e437]: R_PU 4.7kΩ->3V3 · 40-bit OK
+                  - generic [ref=e439]: 1:VDD
+                  - generic [ref=e441]: 2:DATA
+                  - generic [ref=e443]: 3:NC
+                  - generic [ref=e445]: 4:GND
+                  - generic [ref=e446]:
+                    - generic [ref=e448]: LM393 Rain Drop Board
+                    - generic [ref=e449]: Input-Only ADC1_CH6 -> G34 (L4)
+                    - generic [ref=e452]: 0.0% · DRY
+                    - generic [ref=e453]: DO unconnected · AO analog
+                  - generic [ref=e455]: 1:VCC
+                  - generic [ref=e457]: 3:AO
+                  - generic [ref=e459]: 4:DO
+                  - generic [ref=e461]: 2:GND
+                  - generic [ref=e462]:
+                    - generic [ref=e464]: GL5528 LDR + 10kΩ
+                    - generic [ref=e465]: Input-Only ADC1_CH7 -> G35 (L5)
+                    - generic [ref=e468]: 69% · 23788 lx
+                    - generic [ref=e469]: 3V3 -> LDR -> Tap -> 10kΩ -> GND
+                  - generic [ref=e471]: 1:3V3
+                  - generic [ref=e473]: 2:TAP
+                  - generic [ref=e475]: 3:10k->0V
+                  - generic [ref=e476]:
+                    - generic [ref=e481]: ESP32-WROOM-32
+                    - generic [ref=e482]: FW esp32-sim-1.2.0 · 30-PIN
+                    - generic [ref=e483]: BOOT SAFE · IDLE
+                    - generic [ref=e485]: AMS1117-3.3
+                    - generic [ref=e488]: USB 5V
+                    - generic [ref=e489]:
+                      - generic [ref=e492]: L1 EN
+                      - generic [ref=e493]: RST
+                    - generic [ref=e494]:
+                      - generic [ref=e497]: L2 VP/G36
+                      - generic [ref=e498]: IN
+                    - generic [ref=e499]:
+                      - generic [ref=e502]: L3 VN/G39
+                      - generic [ref=e503]: IN
+                    - generic [ref=e504]:
+                      - generic [ref=e507]: L4 GPIO34
+                      - generic [ref=e508]: 3.2V
+                    - generic [ref=e509]:
+                      - generic [ref=e512]: L5 GPIO35
+                      - generic [ref=e513]: 2.2V
+                    - generic [ref=e514]:
+                      - generic [ref=e517]: L6 GPIO32
+                      - generic [ref=e518]: 1.83V
+                    - generic [ref=e519]:
+                      - generic [ref=e522]: L7 GPIO33
+                      - generic [ref=e523]: 1W OK
+                    - generic [ref=e524]:
+                      - generic [ref=e527]: L8 GPIO25
+                      - generic [ref=e528]: 0Hz
+                    - generic [ref=e529]:
+                      - generic [ref=e532]: L9 GPIO26
+                      - generic [ref=e533]: 10µs
+                    - generic [ref=e534]:
+                      - generic [ref=e537]: L10 GPIO27
+                      - generic [ref=e538]: 3.3V
+                    - generic [ref=e539]:
+                      - generic [ref=e542]: L11 GPIO14
+                      - generic [ref=e543]: ECHO
+                    - generic [ref=e544]:
+                      - generic [ref=e547]: L12 GPIO12
+                      - generic [ref=e548]: STRAP!
+                    - generic [ref=e549]:
+                      - generic [ref=e552]: L13 GPIO13
+                      - generic [ref=e553]: 0.0V
+                    - generic [ref=e554]:
+                      - generic [ref=e557]: L14 GND
+                      - generic [ref=e558]: 0.00V
+                    - generic [ref=e559]:
+                      - generic [ref=e562]: L15 VIN/5V
+                      - generic [ref=e563]: 5.02V
+                    - generic [ref=e564]:
+                      - generic [ref=e567]: GPIO23 R1
+                      - generic [ref=e568]: MOSI
+                    - generic [ref=e569]:
+                      - generic [ref=e572]: GPIO22 R2
+                      - generic [ref=e573]: SCL
+                    - generic [ref=e574]:
+                      - generic [ref=e577]: GPIO1 R3
+                      - generic [ref=e578]: TX0
+                    - generic [ref=e579]:
+                      - generic [ref=e582]: GPIO3 R4
+                      - generic [ref=e583]: RX0
+                    - generic [ref=e584]:
+                      - generic [ref=e587]: GPIO21 R5
+                      - generic [ref=e588]: SDA
+                    - generic [ref=e589]:
+                      - generic [ref=e592]: GPIO19 R6
+                      - generic [ref=e593]: MISO
+                    - generic [ref=e594]:
+                      - generic [ref=e597]: GPIO18 R7
+                      - generic [ref=e598]: SCK
+                    - generic [ref=e599]:
+                      - generic [ref=e602]: GPIO5 R8
+                      - generic [ref=e603]: STRAP
+                    - generic [ref=e604]:
+                      - generic [ref=e607]: GPIO17 R9
+                      - generic [ref=e608]: TX2
+                    - generic [ref=e609]:
+                      - generic [ref=e612]: GPIO16 R10
+                      - generic [ref=e613]: RX2
+                    - generic [ref=e614]:
+                      - generic [ref=e617]: GPIO4 R11
+                      - generic [ref=e618]: STRAP
+                    - generic [ref=e619]:
+                      - generic [ref=e622]: GPIO2 R12
+                      - generic [ref=e623]: STRAP
+                    - generic [ref=e624]:
+                      - generic [ref=e627]: GPIO15 R13
+                      - generic [ref=e628]: STRAP
+                    - generic [ref=e629]:
+                      - generic [ref=e632]: GND R14
+                      - generic [ref=e633]: 0.00V
+                    - generic [ref=e634]:
+                      - generic [ref=e637]: 3V3 R15
+                      - generic [ref=e638]: 3.30V
+                  - generic [ref=e639]:
+                    - generic [ref=e643]: FastAPI :8000 & Web Weather
+                    - generic [ref=e644]: ONLINE · 192.168.1.42
+                  - generic [ref=e645]:
+                    - generic [ref=e648]: 330Ω
+                    - generic [ref=e650]: Status LED + R_LED 330Ω
+                    - generic [ref=e651]: G13=0.0V · 330Ω · OFF
+                  - generic [ref=e653]: A(330Ω)
+                  - generic [ref=e655]: K(GND)
+                  - generic [ref=e656]:
+                    - generic [ref=e659]: PC817
+                    - generic [ref=e660]: SPDT
+                    - generic [ref=e663]: G27=HIGH · COM->NC
+                  - generic [ref=e665]: VCC
+                  - generic [ref=e667]: IN
+                  - generic [ref=e669]: GND
+                  - generic [ref=e671]: COM
+                  - generic [ref=e673]: "NO"
+                  - generic [ref=e675]: NC
+                  - generic [ref=e676]:
+                    - generic [ref=e678]: 12V DC PSU (2A)
+                    - generic [ref=e679]: Isolated Domain B
+                    - generic [ref=e680]: +12.0V · 1N4007 OK
+                  - generic [ref=e682]: +12V
+                  - generic [ref=e684]: 12V-
+                  - generic [ref=e685]:
+                    - generic [ref=e690]: PUMP
+                    - generic [ref=e691]: OFF · 0.00 L/m
+                  - generic [ref=e693]: M+
+                  - generic [ref=e695]: M-
+                  - generic [ref=e696]:
+                    - generic [ref=e698]: YF-S201 Hall Turbine Flow Sensor
+                    - generic [ref=e699]: 5V Hall -> R1 10kΩ / R2 20kΩ -> G25 (L8)
+                    - generic [ref=e700]: 0.00 L/m · 0 pulses
+                    - generic [ref=e701]: Divider Tap = 3.34V SAFE · 0.0 Hz
+                  - generic [ref=e703]: 1:5V
+                  - generic [ref=e705]: 2:SIG
+                  - generic [ref=e707]: 3:GND
+                  - generic [ref=e708]:
+                    - generic [ref=e710]: HC-SR04 Ultrasonic + 50L Tank
+                    - generic [ref=e711]: TRIG<-G26(L9) · ECHO->1k/2k->G14(L11)
+                    - generic [ref=e712]: 84.0% (42.0 L)
+                    - generic [ref=e713]: TRIG:OK · ECHO(1k/2k):OK · Cutoff <2%
+                  - generic [ref=e717]: 1:5V
+                  - generic [ref=e719]: 2:TRIG
+                  - generic [ref=e721]: 3:ECHO
+                  - generic [ref=e723]: 4:GND
+                - generic [ref=e724]:
+                  - generic [ref=e725]:
+                    - button "Start Pump" [ref=e726] [cursor=pointer]
+                    - button "Stop Pump" [ref=e727] [cursor=pointer]
+                    - button "E-Stop Latch" [ref=e728] [cursor=pointer]
+                    - button "Clear Safety" [ref=e729] [cursor=pointer]
+                    - button "Refill 50L Tank" [ref=e730] [cursor=pointer]
+                  - generic [ref=e731]: Click any colored wire trace on the board to cut/reconnect it
+              - generic [ref=e732]:
+                - generic [ref=e733]:
+                  - generic [ref=e734]:
+                    - generic [ref=e735]: UART0 Serial Monitor (115200 baud)
+                    - generic [ref=e736]: Boot state, GPIO transitions, HTTP telemetry & safety cutoffs
+                  - button "Send Telemetry Frame" [ref=e737] [cursor=pointer]
+                - generic [ref=e739]:
+                  - generic [ref=e740]: 2026-11-14T16:23:37.630183Z
+                  - generic [ref=e741]: "[BOOT]"
+                  - generic [ref=e742]: ESP32-DEMO-001 booted — GPIO27 HIGH (relay OFF), pump safe OFF
+            - generic [ref=e743]:
+              - generic [ref=e744]:
+                - generic [ref=e745]:
+                  - generic [ref=e746]:
+                    - generic [ref=e747]: Real-Time Sensor Sliders
+                    - generic [ref=e748]: Drag to override · click LOCKED pill for live physics
+                  - button "All Auto" [ref=e749] [cursor=pointer]
+                - generic [ref=e750]:
+                  - generic [ref=e751]:
+                    - generic [ref=e752]:
+                      - generic [ref=e753]:
+                        - generic [ref=e754]: Soil Moisture
+                        - generic [ref=e755]: G32 · L6
+                      - generic [ref=e756]:
+                        - button "PHYSICS" [ref=e757] [cursor=pointer]
+                        - generic [ref=e758]: 41%
+                    - slider "Soil Moisture" [ref=e759] [cursor=pointer]: "41"
+                    - generic [ref=e760]:
+                      - generic [ref=e761]: 1.83V · ADC 2266 · Dry 1.64%/hr
+                      - generic [ref=e762]: 0%–100%
+                  - generic [ref=e763]:
+                    - generic [ref=e764]:
+                      - generic [ref=e765]:
+                        - generic [ref=e766]: DHT22 Temp
+                        - generic [ref=e767]: G33 · L7
+                      - generic [ref=e768]:
+                        - button "PHYSICS" [ref=e769] [cursor=pointer]
+                        - generic [ref=e770]: 24°C
+                    - slider "DHT22 Temp" [ref=e771] [cursor=pointer]: "24"
+                    - generic [ref=e772]:
+                      - generic [ref=e773]: "1-Wire + 4.7kΩ: 24 °C"
+                      - generic [ref=e774]: "-5°C–52°C"
+                  - generic [ref=e775]:
+                    - generic [ref=e776]:
+                      - generic [ref=e777]:
+                        - generic [ref=e778]: DHT22 Humidity
+                        - generic [ref=e779]: G33 · L7
+                      - generic [ref=e780]:
+                        - button "PHYSICS" [ref=e781] [cursor=pointer]
+                        - generic [ref=e782]: 52%
+                    - slider "DHT22 Humidity" [ref=e783] [cursor=pointer]: "52"
+                    - generic [ref=e784]:
+                      - generic [ref=e785]: "1-Wire + 4.7kΩ: 54.6 %RH"
+                      - generic [ref=e786]: 5%–100%
+                  - generic [ref=e787]:
+                    - generic [ref=e788]:
+                      - generic [ref=e789]:
+                        - generic [ref=e790]: Rain Sensor Wetness
+                        - generic [ref=e791]: G34 · L4
+                      - generic [ref=e792]:
+                        - button "PHYSICS" [ref=e793] [cursor=pointer]
+                        - generic [ref=e794]: 0%
+                    - slider "Rain Sensor Wetness" [ref=e795] [cursor=pointer]: "0"
+                    - generic [ref=e796]:
+                      - generic [ref=e797]: 3.22V · ADC 3998 · Dry board
+                      - generic [ref=e798]: 0%–100%
+                  - generic [ref=e799]:
+                    - generic [ref=e800]:
+                      - generic [ref=e801]:
+                        - generic [ref=e802]: Reservoir Level
+                        - generic [ref=e803]: G26·L9 / G14·L11
+                      - generic [ref=e804]:
+                        - button "PHYSICS" [ref=e805] [cursor=pointer]
+                        - generic [ref=e806]: 84%
+                    - slider "Reservoir Level" [ref=e807] [cursor=pointer]: "84"
+                    - generic [ref=e808]:
+                      - generic [ref=e809]: 564µs · 42.01 L / 50 L
+                      - generic [ref=e810]: 0%–100%
+                  - generic [ref=e811]:
+                    - generic [ref=e812]:
+                      - generic [ref=e813]:
+                        - generic [ref=e814]: Ambient Light (LDR)
+                        - generic [ref=e815]: G35 · L5
+                      - generic [ref=e816]:
+                        - button "PHYSICS" [ref=e817] [cursor=pointer]
+                        - generic [ref=e818]: 67.3%
+                    - slider "Ambient Light (LDR)" [ref=e819] [cursor=pointer]: "67"
+                    - generic [ref=e820]:
+                      - generic [ref=e821]: 2.20V · 23788 lux
+                      - generic [ref=e822]: 0%–100%
+                  - generic [ref=e823]:
+                    - generic [ref=e824]:
+                      - generic [ref=e825]: Pump L/min
+                      - spinbutton "Pump L/min" [ref=e826]: "2.6"
+                    - generic [ref=e827]:
+                      - generic [ref=e828]: Priming (s)
+                      - spinbutton "Priming (s)" [ref=e829]: "2"
+                    - generic [ref=e830]:
+                      - generic [ref=e831]: Max Run (s)
+                      - spinbutton "Max Run (s)" [ref=e832]: "900"
+              - generic [ref=e833]:
+                - generic [ref=e834]:
+                  - generic [ref=e835]:
+                    - generic [ref=e836]: Web Weather Crawler & Rain-Skip
+                    - generic [ref=e837]: No API keys · crawls live weather pages directly
+                  - button "Crawl Now" [ref=e838] [cursor=pointer]
+                - generic [ref=e839]:
+                  - generic [ref=e840]:
+                    - generic [ref=e841]:
+                      - generic [ref=e842]: Dehli, India
+                      - generic [ref=e843]: Smoky haze · live crawl
+                    - generic [ref=e844]: 24.0°C
+                  - generic [ref=e845]:
+                    - generic [ref=e846]:
+                      - generic [ref=e847]: Humidity
+                      - strong [ref=e848]: 52%
+                    - generic [ref=e849]:
+                      - generic [ref=e850]: Precip
+                      - strong [ref=e851]: 0.0 mm
+                    - generic [ref=e852]:
+                      - generic [ref=e853]: Rain Prob
+                      - strong [ref=e854]: 10%
+                    - generic [ref=e855]:
+                      - generic [ref=e856]: Wind
+                      - strong [ref=e857]: 4.0 km/h
+                    - generic [ref=e858]:
+                      - generic [ref=e859]: Cloud / UV
+                      - strong [ref=e860]: 38% / UV 0
+                    - generic [ref=e861]:
+                      - generic [ref=e862]: Soil Drying
+                      - strong [ref=e863]: 1.64%/h
+                  - generic [ref=e864]:
+                    - generic [ref=e865]:
+                      - generic [ref=e866]: Irrigation Advisor
+                      - generic [ref=e867]: NORMAL
+                    - generic [ref=e868]: Clear to irrigate — no rain/wetness block active
+                  - generic [ref=e869]:
+                    - generic [ref=e870]:
+                      - textbox "City or region (e.g., Delhi, Mumbai, London)" [ref=e871]: Delhi
+                      - button "Apply" [ref=e872] [cursor=pointer]
+                    - textbox "Optional custom weather URL (https://...)" [ref=e874]
+                    - generic [ref=e875]:
+                      - generic [ref=e876]: Sync crawled weather → ambient sensors
+                      - checkbox "Sync crawled weather → ambient sensors" [checked] [ref=e877]
+                    - generic [ref=e878]:
+                      - generic [ref=e879]: Auto-skip scheduled runs on rain / wet soil
+                      - checkbox "Auto-skip scheduled runs on rain / wet soil" [checked] [ref=e880]
+                  - generic [ref=e881]: "Weather report: Delhi .-. Smoky haze __) 24 °C ( ↓ 4 km/h `-’ 8 km • 0.0 mm"
+                  - generic [ref=e882]:
+                    - generic [ref=e883]: Crawled via HTML/HTTP
+                    - link "wttr.in/Delhi" [ref=e884] [cursor=pointer]:
+                      - /url: https://wttr.in/Delhi
+  - generic "Notifications"

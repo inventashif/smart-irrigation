@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Irrigation Control Dashboard &amp; ESP32 Hardware Lab">
+    <title>Smart Irrigation Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b131e'/%3E%3Cpath d='M16 5C16 5 8 14.2 8 19.5a8 8 0 0 0 16 0C24 14.2 16 5 16 5z' fill='%2300d4aa'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="stylesheet" href="/static/css/simulator.css">
+    <script src="/static/js/vendor/chart.umd.min.js"></script>
+    <script src="/static/js/vendor/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M12 22v-8M12 22l-4-4M12 22l4-4M6 18v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4M2 12h20"/>
+                        <circle cx="12" cy="8" r="2"/>
+                    </svg>
+                    <span class="logo-text">Smart Irrigation</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-view="dashboard" aria-current="page">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#simulator" class="nav-item" data-view="simulator">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/>
+                        <rect x="9" y="9" width="6" height="6"/>
+                        <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>
+                    </svg>
+                    <span>Hardware Lab</span>
+                    <span class="nav-pill">ESP32</span>
+                </a>
+                <a href="#devices" class="nav-item" data-view="devices">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <path d="M8 21h8M12 17v4"/>
+                    </svg>
+                    <span>Devices</span>
+                </a>
+                <a href="#telemetry" class="nav-item" data-view="telemetry">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 3v18h18"/>
+                        <path d="m19 9-5 5-4-4-3 3"/>
+                    </svg>
+                    <span>Telemetry</span>
+                </a>
+                <a href="#commands" class="nav-item" data-view="commands">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span>Commands</span>
+                </a>
+                <a href="#settings" class="nav-item" data-view="settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span class="status-text" id="statusText">Connecting...</span>
+                </div>
+                <div class="version-info">v1.2.0</div>
+            </div>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent" role="main">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                    <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb"></nav>
+                </div>
+                <div class="top-bar-right">
+                    <div class="device-selector">
+                        <label for="deviceSelect" class="visually-hidden">Select Device</label>
+                        <select id="deviceSelect" aria-label="Select device">
+                            <option value="">Loading devices...</option>
+                        </select>
+                    </div>
+                    <div class="theme-toggle" id="themeToggle" role="button" aria-label="Toggle theme" aria-pressed="false" tabindex="0">
+                        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </div>
+                    <button class="refresh-btn" id="refreshBtn" aria-label="Refresh data">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M23 4v6h-6"/>
+                            <path d="M1 20v-6h6"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- View Content -->
+            <div class="view-container" id="viewContainer">
+                <!-- Dashboard View -->
+                <section class="view" id="view-dashboard" role="region" aria-labelledby="dashboard-title">
+                    <div class="dashboard-grid">
+                        <!-- Status Cards -->
+                        <div class="card status-card" id="card-pump">
+                            <div class="card-header">
+                                <div class="card-icon pump-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Pump Status</h3>
+                                    <p class="card-subtitle">Current state</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="pumpStatus">Unknown</div>
+                            <div class="card-meta" id="pumpMeta">Last updated: —</div>
+                        </div>
+
+                        <div class="card status-card" id="card-soil">
+                            <div class="card-header">
+                                <div class="card-icon soil-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22v-8M12 22l-4-4M12 22l4-4M6 18v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Soil Moisture</h3>
+                                    <p class="card-subtitle">Current reading</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="soilValue">—</div>
+                            <div class="card-meta">Raw ADC: <span id="rawAdc">—</span><span id="thresholdMeta" class="hidden"> · Dry: <span id="dryThreshold">—</span> / Wet: <span id="wetThreshold">—</span></span></div>
+                            <div class="progress-bar" id="soilProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Soil moisture percentage">
+                                <div class="progress-fill" id="soilProgressFill"></div>
+                            </div>
+                        </div>
+
+                        <div class="card status-card" id="card-flow">
+                            <div class="card-header">
+                                <div class="card-icon flow-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                        <circle cx="12" cy="12" r="4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Flow Rate</h3>
+                                    <p class="card-subtitle">Current flow</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="flowValue">— L/min</div>
+                            <div class="card-meta" id="flowMeta">Total volume: <span id="totalVolume">—</span> L</div>
+                        </div>
+
+                        <div class="card status-card" id="card-env">
+                            <div class="card-header">
+                                <div class="card-icon env-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                                        <circle cx="12" cy="12" r="4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Environment</h3>
+                                    <p class="card-subtitle">Temperature & Humidity</p>
+                                </div>
+                            </div>
+                            <div class="card-value dual-value">
+                                <span id="tempValue">— °C</span>
+                                <span id="humidityValue">— %</span>
+                            </div>
+                            <div class="card-meta" id="envMeta">DHT22 sensor</div>
+                        </div>
+
+                        <div class="card status-card" id="card-safety">
+                            <div class="card-header">
+                                <div class="card-icon safety-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Safety Status</h3>
+                                    <p class="card-subtitle">System protection</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="safetyStatus">Normal</div>
+                            <div class="card-meta" id="safetyMeta">Emergency stop: <span id="estopState">Inactive</span></div>
+                        </div>
+
+                        <div class="card status-card" id="card-uptime">
+                            <div class="card-header">
+                                <div class="card-icon uptime-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Uptime</h3>
+                                    <p class="card-subtitle">Device online time</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="uptimeValue">—</div>
+                            <div class="card-meta" id="uptimeMeta">Last seen: <span id="lastSeen">—</span></div>
+                        </div>
+
+                        <div class="card status-card" id="card-tank">
+                            <div class="card-header">
+                                <div class="card-icon tank-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 4h14v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4z"/>
+                                        <path d="M5 11c3 1.5 6-1.5 9 0s5 0 5 0"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Reservoir &amp; Field</h3>
+                                    <p class="card-subtitle">Tank, rain board &amp; LDR</p>
+                                </div>
+                            </div>
+                            <div class="card-value" id="tankValue">— %</div>
+                            <div class="card-meta" id="tankMeta">
+                                Vol: <span id="tankLitresValue">—</span> L · Rain: <span id="rainBoardValue">—</span> · Light: <span id="lightLuxValue">—</span>
+                            </div>
+                            <div class="progress-bar" id="tankProgress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Water tank level percentage">
+                                <div class="progress-fill tank-progress-fill" id="tankProgressFill"></div>
+                            </div>
+                        </div>
+
+                        <div class="card status-card" id="card-weather">
+                            <div class="card-header">
+                                <div class="card-icon weather-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="card-title">Web Weather &amp; Skip</h3>
+                                    <p class="card-subtitle" id="weatherCardLocation">Crawled forecast</p>
+                                </div>
+                                <span class="weather-pill clear" id="weatherCardPill">NORMAL</span>
+                            </div>
+                            <div class="card-value" id="weatherCardValue">— °C</div>
+                            <div class="card-meta" id="weatherCardMeta">Condition: <span id="weatherCardCond">—</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="charts-grid">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Soil Moisture History</h3>
+                                <div class="chart-controls">
+                                    <select id="soilChartRange" class="chart-range-select" aria-label="Time range">
+                                        <option value="1h">Last Hour</option>
+                                        <option value="6h" selected>Last 6 Hours</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                        <option value="7d">Last 7 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="soilChart" aria-label="Soil moisture over time"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Flow Rate History</h3>
+                                <div class="chart-controls">
+                                    <select id="flowChartRange" class="chart-range-select" aria-label="Time range">
+                                        <option value="1h">Last Hour</option>
+                                        <option value="6h" selected>Last 6 Hours</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                        <option value="7d">Last 7 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="flowChart" aria-label="Flow rate over time"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Temperature & Humidity</h3>
+                                <div class="chart-controls">
+                                    <select id="envChartRange" class="chart-range-select" aria-label="Time range">
+                                        <option value="1h">Last Hour</option>
+                                        <option value="6h" selected>Last 6 Hours</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                        <option value="7d">Last 7 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="envChart" aria-label="Temperature and humidity over time"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Pump Activity</h3>
+                                <div class="chart-controls">
+                                    <select id="pumpChartRange" class="chart-range-select" aria-label="Time range">
+                                        <option value="1h">Last Hour</option>
+                                        <option value="6h" selected>Last 6 Hours</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                        <option value="7d">Last 7 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="pumpChart" aria-label="Pump on/off timeline"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Hardware Simulator Lab View -->
+                <section class="view hidden" id="view-simulator" role="region" aria-label="ESP32 Hardware Lab and Weather Workbench">
+                    <div id="simulatorWorkbenchRoot"></div>
+                </section>
+
+                <!-- Devices View -->
+                <section class="view hidden" id="view-devices" role="region" aria-labelledby="devices-title">
+                    <div class="view-header">
+                        <h2 id="devices-title">Device Management</h2>
+                        <button class="btn btn-primary" id="addDeviceBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Add Device
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="devicesTable" role="grid">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Device Code</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Last Seen</th>
+                                        <th scope="col">Firmware</th>
+                                        <th scope="col">IP Address</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="devicesTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Telemetry View -->
+                <section class="view hidden" id="view-telemetry" role="region" aria-labelledby="telemetry-title">
+                    <div class="view-header">
+                        <h2 id="telemetry-title">Telemetry History</h2>
+                        <div class="view-controls">
+                            <select id="telemetryDeviceFilter" class="filter-select" aria-label="Filter by device">
+                                <option value="">All Devices</option>
+                            </select>
+                            <select id="telemetryTimeFilter" class="filter-select" aria-label="Time range">
+                                <option value="1h">Last Hour</option>
+                                <option value="6h" selected>Last 6 Hours</option>
+                                <option value="24h">Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                            </select>
+                            <button class="btn btn-secondary" id="exportTelemetryBtn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="telemetryTable" role="grid">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Timestamp</th>
+                                        <th scope="col">Device</th>
+                                        <th scope="col">Soil Moisture</th>
+                                        <th scope="col">Flow (L/min)</th>
+                                        <th scope="col">Total Vol (L)</th>
+                                        <th scope="col">Temp (°C)</th>
+                                        <th scope="col">Humidity (%)</th>
+                                        <th scope="col">Tank / Rain / Lux</th>
+                                        <th scope="col">Pump</th>
+                                        <th scope="col">Safety</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="telemetryTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="telemetryPagination" aria-label="Telemetry pagination">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Commands View -->
+                <section class="view hidden" id="view-commands" role="region" aria-labelledby="commands-title">
+                    <div class="view-header">
+                        <h2 id="commands-title">Command Control</h2>
+                    </div>
+                    
+                    <div class="commands-grid">
+                        <!-- Quick Actions -->
+                        <div class="card commands-card">
+                            <h3 class="card-title">Quick Actions</h3>
+                            <p class="card-subtitle">Send immediate commands to the selected device</p>
+                            <div class="command-buttons" id="commandButtons">
+                                <button class="btn btn-success cmd-btn" data-command="start" aria-label="Start irrigation">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <polygon points="5 3 19 12 5 21 5 3"/>
+                                    </svg>
+                                    <span>Start</span>
+                                </button>
+                                <button class="btn btn-warning cmd-btn" data-command="stop" aria-label="Stop irrigation">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <rect x="6" y="4" width="12" height="16" rx="2"/>
+                                    </svg>
+                                    <span>Stop</span>
+                                </button>
+                                <button class="btn btn-danger cmd-btn" data-command="emergency_stop" aria-label="Emergency stop">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                    </svg>
+                                    <span>Emergency Stop</span>
+                                </button>
+                                <button class="btn btn-info cmd-btn" data-command="clear_safety" aria-label="Clear safety lock">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path d="M9 12l2 2 4-4"/>
+                                        <circle cx="12" cy="12" r="10"/>
+                                    </svg>
+                                    <span>Clear Safety</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scheduled Commands -->
+                        <div class="card commands-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Scheduled Irrigation</h3>
+                                <button class="btn btn-sm btn-primary" id="addScheduleBtn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Add Schedule
+                                </button>
+                            </div>
+                            <div class="schedule-list" id="scheduleList">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Command History -->
+                        <div class="card commands-card full-width">
+                            <h3 class="card-title">Command History</h3>
+                            <div class="table-wrapper">
+                                <table class="data-table" id="commandHistoryTable" role="grid">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Time</th>
+                                            <th scope="col">Device</th>
+                                            <th scope="col">Command</th>
+                                            <th scope="col">Status</th>
+                                            <th scope="col">Acknowledged</th>
+                                            <th scope="col">Response</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="commandHistoryBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings View -->
+                <section class="view hidden" id="view-settings" role="region" aria-labelledby="settings-title">
+                    <div class="view-header">
+                        <h2 id="settings-title">Settings</h2>
+                    </div>
+                    
+                    <div class="settings-grid">
+                        <!-- General Settings -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">General</h3>
+                            <div class="setting-group">
+                                <label for="pollInterval" class="setting-label">Poll Interval (seconds)</label>
+                                <input type="number" id="pollInterval" class="setting-input" min="1" max="300" value="5">
+                                <p class="setting-help">How often the dashboard refreshes data from the server</p>
+                            </div>
+                            <div class="setting-group">
+                                <label for="chartRetention" class="setting-label">Chart Data Retention</label>
+                                <select id="chartRetention" class="setting-select">
+                                    <option value="1h">1 Hour</option>
+                                    <option value="6h" selected>6 Hours</option>
+                                    <option value="24h">24 Hours</option>
+                                    <option value="7d">7 Days</option>
+                                </select>
+                                <p class="setting-help">Maximum time range for chart data</p>
+                            </div>
+                            <div class="setting-group">
+                                <label for="maxDataPoints" class="setting-label">Max Chart Data Points</label>
+                                <input type="number" id="maxDataPoints" class="setting-input" min="50" max="5000" value="300">
+                                <p class="setting-help">Maximum number of points to display on charts (performance)</p>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label checkbox-label">
+                                    <input type="checkbox" id="autoRefresh" class="setting-checkbox" checked>
+                                    <span class="checkmark"></span>
+                                    Auto-refresh dashboard
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label checkbox-label">
+                                    <input type="checkbox" id="showNotifications" class="setting-checkbox" checked>
+                                    <span class="checkmark"></span>
+                                    Show toast notifications
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Device Settings -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">Device Configuration</h3>
+                            <div class="setting-group">
+                                <label for="defaultDevice" class="setting-label">Default Device</label>
+                                <select id="defaultDevice" class="setting-select" aria-label="Default device">
+                                    <option value="">Select a device...</option>
+                                </select>
+                                <p class="setting-help">Device to select automatically on page load</p>
+                            </div>
+                            <div class="setting-group">
+                                <label for="deviceTimeout" class="setting-label">Device Offline Timeout (seconds)</label>
+                                <input type="number" id="deviceTimeout" class="setting-input" min="10" max="3600" value="60">
+                                <p class="setting-help">Time before a device is marked as offline</p>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label checkbox-label">
+                                    <input type="checkbox" id="autoConnect" class="setting-checkbox" checked>
+                                    <span class="checkmark"></span>
+                                    Auto-connect to last device
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Thresholds & Alerts -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">Thresholds & Alerts</h3>
+                            <div class="threshold-editor" id="thresholdEditor">
+                                <!-- Populated by JS based on selected device -->
+                                <p class="setting-help">Select a device to configure thresholds</p>
+                            </div>
+                        </div>
+
+                        <!-- Appearance -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">Appearance</h3>
+                            <div class="setting-group">
+                                <label for="themeSelect" class="setting-label">Theme</label>
+                                <select id="themeSelect" class="setting-select">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                    <option value="system">System</option>
+                                </select>
+                            </div>
+                            <div class="setting-group">
+                                <label for="chartTheme" class="setting-label">Chart Theme</label>
+                                <select id="chartTheme" class="setting-select">
+                                    <option value="auto">Auto (match UI)</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+                            <div class="setting-group">
+                                <label for="density" class="setting-label">UI Density</label>
+                                <select id="density" class="setting-select">
+                                    <option value="comfortable">Comfortable</option>
+                                    <option value="compact" selected>Compact</option>
+                                    <option value="spacious">Spacious</option>
+                                </select>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label checkbox-label">
+                                    <input type="checkbox" id="animations" class="setting-checkbox" checked>
+                                    <span class="checkmark"></span>
+                                    Enable animations
+                                </label>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label checkbox-label">
+                                    <input type="checkbox" id="reducedMotion" class="setting-checkbox">
+                                    <span class="checkmark"></span>
+                                    Reduce motion (accessibility)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Data Management -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">Data Management</h3>
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <button class="btn btn-secondary" id="clearCacheBtn">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                        Clear Local Cache
+                                    </button>
+                                </label>
+                                <p class="setting-help">Clear cached chart data and device list</p>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <button class="btn btn-secondary" id="exportSettingsBtn">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="7 10 12 15 17 10"/>
+                                            <line x1="12" y1="15" x2="12" y2="3"/>
+                                        </svg>
+                                        Export Settings
+                                    </button>
+                                </label>
+                                <p class="setting-help">Download your dashboard settings as JSON</p>
+                            </div>
+                            <div class="setting-group">
+                                <label class="setting-label">
+                                    <input type="file" id="importSettingsFile" accept=".json" hidden>
+                                    <button class="btn btn-secondary" id="importSettingsBtn">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                            <polyline points="17 8 12 3 7 8"/>
+                                            <line x1="12" y1="3" x2="12" y2="15"/>
+                                        </svg>
+                                        Import Settings
+                                    </button>
+                                </label>
+                                <p class="setting-help">Load previously exported settings</p>
+                            </div>
+                        </div>
+
+                        <!-- About -->
+                        <div class="card settings-card">
+                            <h3 class="card-title">About</h3>
+                            <div class="about-info">
+                                <div class="about-item">
+                                    <span class="about-label">Version</span>
+                                    <span class="about-value" id="appVersion">1.0.0</span>
+                                </div>
+                                <div class="about-item">
+                                    <span class="about-label">Backend</span>
+                                    <span class="about-value" id="backendVersion">—</span>
+                                </div>
+                                <div class="about-item">
+                                    <span class="about-label">API Base</span>
+                                    <span class="about-value" id="apiBase">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay hidden" id="deviceModal" role="dialog" aria-modal="true" aria-labelledby="deviceModalTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="deviceModalTitle">Add Device</h3>
+                <button class="modal-close" id="deviceModalClose" aria-label="Close modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <form class="modal-body" id="deviceForm">
+                <div class="form-group">
+                    <label for="deviceCode" class="form-label">Device Code *</label>
+                    <input type="text" id="deviceCode" class="form-input" required placeholder="e.g., ESP32-DEMO-001">
+                </div>
+                <div class="form-group">
+                    <label for="deviceName" class="form-label">Display Name</label>
+                    <input type="text" id="deviceName" class="form-input" placeholder="Optional friendly name">
+                </div>
+                <div class="form-group">
+                    <label for="deviceLocation" class="form-label">Location</label>
+                    <input type="text" id="deviceLocation" class="form-input" placeholder="e.g., Greenhouse A, Zone 1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="deviceLat" class="form-label">Latitude</label>
+                        <input type="number" id="deviceLat" class="form-input" step="any" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label for="deviceLon" class="form-label">Longitude</label>
+                        <input type="number" id="deviceLon" class="form-input" step="any" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label checkbox-label">
+                        <input type="checkbox" id="deviceActive" class="setting-checkbox" checked>
+                        <span class="checkmark"></span>
+                        Active (poll for data)
+                    </label>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="deviceModalCancel">Cancel</button>
+                <button class="btn btn-primary" id="deviceModalSave" type="submit" form="deviceForm">Save Device</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="scheduleModal" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="scheduleModalTitle">Add Schedule</h3>
+                <button class="modal-close" id="scheduleModalClose" aria-label="Close modal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <form class="modal-body" id="scheduleForm">
+                <div class="form-group">
+                    <label for="scheduleName" class="form-label">Schedule Name *</label>
+                    <input type="text" id="scheduleName" class="form-input" required placeholder="e.g., Morning Watering">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="scheduleTime" class="form-label">Time *</label>
+                        <input type="time" id="scheduleTime" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="scheduleDuration" class="form-label">Duration (minutes) *</label>
+                        <input type="number" id="scheduleDuration" class="form-input" min="1" max="480" value="10" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="scheduleDays" class="form-label">Days *</label>
+                    <div class="day-checkboxes" id="dayCheckboxes">
+                        <label class="day-checkbox"><input type="checkbox" value="0"> Sun</label>
+                        <label class="day-checkbox"><input type="checkbox" value="1"> Mon</label>
+                        <label class="day-checkbox"><input type="checkbox" value="2"> Tue</label>
+                        <label class="day-checkbox"><input type="checkbox" value="3"> Wed</label>
+                        <label class="day-checkbox"><input type="checkbox" value="4"> Thu</label>
+                        <label class="day-checkbox"><input type="checkbox" value="5"> Fri</label>
+                        <label class="day-checkbox"><input type="checkbox" value="6"> Sat</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="scheduleCommand" class="form-label">Command *</label>
+                    <select id="scheduleCommand" class="form-select" required>
+                        <option value="start">Start Irrigation</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label checkbox-label">
+                        <input type="checkbox" id="scheduleEnabled" class="setting-checkbox" checked>
+                        <span class="checkmark"></span>
+                        Enabled
+                    </label>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="scheduleModalCancel">Cancel</button>
+                <button class="btn btn-primary" id="scheduleModalSave" type="submit" form="scheduleForm">Save Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-label="Notifications"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay" role="status" aria-label="Loading">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <script type="module" src="/static/js/dashboard.js"></script>
+</body>
+</html>

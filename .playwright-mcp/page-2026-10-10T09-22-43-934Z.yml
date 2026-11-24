@@ -1,0 +1,109 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - navigation "Main navigation" [ref=f1e3]:
+      - generic [ref=f1e4]: Smart Irrigation
+      - navigation [ref=f1e10]:
+        - link "Dashboard" [ref=f1e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Devices" [ref=f1e18] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [ref=f1e23] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=f1e28] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [ref=f1e33] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=f1e38]:
+        - generic [ref=f1e39]: Connecting...
+        - generic [ref=f1e42]: v1.0.0
+    - main [ref=f1e43]:
+      - generic [ref=f1e44]:
+        - generic [ref=f1e45]:
+          - heading "Dashboard" [level=1] [ref=f1e46]
+          - navigation "Breadcrumb"
+        - generic [ref=f1e47]:
+          - generic [ref=f1e48]:
+            - generic [ref=f1e49]: Select Device
+            - combobox "Select device" [ref=f1e50] [cursor=pointer]:
+              - option "Loading devices..." [selected]
+          - button "Toggle theme" [ref=f1e51] [cursor=pointer]
+          - button "Refresh data" [ref=f1e54] [cursor=pointer]
+      - region [ref=f1e60]:
+        - generic [ref=f1e61]:
+          - generic [ref=f1e62]:
+            - generic [ref=f1e67]:
+              - heading "Pump Status" [level=3] [ref=f1e68]
+              - paragraph [ref=f1e69]: Current state
+            - generic [ref=f1e70]: Unknown
+            - generic [ref=f1e71]: "Last updated: —"
+          - generic [ref=f1e72]:
+            - generic [ref=f1e77]:
+              - heading "Soil Moisture" [level=3] [ref=f1e78]
+              - paragraph [ref=f1e79]: Current reading
+            - generic [ref=f1e80]: —
+            - generic [ref=f1e81]: "Dry threshold: — | Wet threshold: —"
+            - progressbar "Soil moisture percentage" [ref=f1e82]
+          - generic [ref=f1e83]:
+            - generic [ref=f1e89]:
+              - heading "Flow Rate" [level=3] [ref=f1e90]
+              - paragraph [ref=f1e91]: Current flow
+            - generic [ref=f1e92]: — L/min
+            - generic [ref=f1e93]: "Total volume: — L"
+          - generic [ref=f1e94]:
+            - generic [ref=f1e100]:
+              - heading "Environment" [level=3] [ref=f1e101]
+              - paragraph [ref=f1e102]: Temperature & Humidity
+            - generic [ref=f1e103]:
+              - generic [ref=f1e104]: — °C
+              - generic [ref=f1e105]: — %
+            - generic [ref=f1e106]: DHT22 sensor
+          - generic [ref=f1e107]:
+            - generic [ref=f1e112]:
+              - heading "Safety Status" [level=3] [ref=f1e113]
+              - paragraph [ref=f1e114]: System protection
+            - generic [ref=f1e115]: Normal
+            - generic [ref=f1e116]: "Emergency stop: Inactive"
+          - generic [ref=f1e117]:
+            - generic [ref=f1e123]:
+              - heading "Uptime" [level=3] [ref=f1e124]
+              - paragraph [ref=f1e125]: Device online time
+            - generic [ref=f1e126]: —
+            - generic [ref=f1e127]: "Last seen: —"
+        - generic [ref=f1e128]:
+          - generic [ref=f1e129]:
+            - generic [ref=f1e130]:
+              - heading "Soil Moisture History" [level=3] [ref=f1e131]
+              - combobox "Time range" [ref=f1e133] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Soil moisture over time" [ref=f1e135]
+          - generic [ref=f1e136]:
+            - generic [ref=f1e137]:
+              - heading "Flow Rate History" [level=3] [ref=f1e138]
+              - combobox "Time range" [ref=f1e140] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Flow rate over time" [ref=f1e142]
+          - generic [ref=f1e143]:
+            - generic [ref=f1e144]:
+              - heading "Temperature & Humidity" [level=3] [ref=f1e145]
+              - combobox "Time range" [ref=f1e147] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Temperature and humidity over time" [ref=f1e149]
+          - generic [ref=f1e150]:
+            - generic [ref=f1e151]:
+              - heading "Pump Activity" [level=3] [ref=f1e152]
+              - combobox "Time range" [ref=f1e154] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Pump on/off timeline" [ref=f1e156]
+  - generic "Notifications"

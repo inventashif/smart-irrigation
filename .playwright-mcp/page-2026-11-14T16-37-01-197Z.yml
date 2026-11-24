@@ -1,0 +1,132 @@
+- generic [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - navigation "Main navigation" [ref=f3e3]:
+      - generic [ref=f3e4]: Smart Irrigation
+      - navigation [ref=f3e10]:
+        - link "Dashboard" [active] [ref=f3e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Hardware Lab ESP32" [ref=f3e18] [cursor=pointer]:
+          - /url: "#simulator"
+          - generic [ref=f3e23]: Hardware Lab
+          - generic [ref=f3e24]: ESP32
+        - link "Devices" [ref=f3e25] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [ref=f3e30] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=f3e35] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [ref=f3e40] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=f3e45]:
+        - generic [ref=f3e46]: Connected
+        - generic [ref=f3e49]: v1.2.0
+    - main [ref=f3e51]:
+      - generic [ref=f3e52]:
+        - generic [ref=f3e53]:
+          - heading "Dashboard" [level=1] [ref=f3e3482]
+          - navigation "Breadcrumb" [ref=f3e55]:
+            - generic [ref=f3e3483]: Smart Irrigation
+            - generic [ref=f3e3484]: /
+            - generic [ref=f3e3485]: Real-time overview
+        - generic [ref=f3e59]:
+          - generic [ref=f3e60]:
+            - generic [ref=f3e61]: Select Device
+            - combobox "Select device" [ref=f3e62] [cursor=pointer]:
+              - option "ESP32 Field Bench (Sim) (ESP32-DEMO-001)" [selected]
+              - option "ESP32-SAFETY-TEST"
+          - button "Toggle theme" [ref=f3e63] [cursor=pointer]
+          - button "Refresh data" [ref=f3e66] [cursor=pointer]
+      - region [ref=f3e3486]:
+        - generic [ref=f3e3487]:
+          - generic [ref=f3e3488]:
+            - generic [ref=f3e3493]:
+              - heading "Pump Status" [level=3] [ref=f3e3494]
+              - paragraph [ref=f3e3495]: Current state
+            - generic [ref=f3e3496]: Stopped
+            - generic [ref=f3e3497]: "Last update: 10:06:59 PM"
+          - generic [ref=f3e3498]:
+            - generic [ref=f3e3503]:
+              - heading "Soil Moisture" [level=3] [ref=f3e3504]
+              - paragraph [ref=f3e3505]: Current reading
+            - generic [ref=f3e3506]: 69.1 %
+            - generic [ref=f3e3507]: "Raw ADC: 1757"
+            - progressbar "Soil moisture percentage" [ref=f3e3508]
+          - generic [ref=f3e3510]:
+            - generic [ref=f3e3516]:
+              - heading "Flow Rate" [level=3] [ref=f3e3517]
+              - paragraph [ref=f3e3518]: Current flow
+            - generic [ref=f3e3519]: 0.00 L/min
+            - generic [ref=f3e3520]: "Total volume: 0.04 L"
+          - generic [ref=f3e3521]:
+            - generic [ref=f3e3527]:
+              - heading "Environment" [level=3] [ref=f3e3528]
+              - paragraph [ref=f3e3529]: Temperature & Humidity
+            - generic [ref=f3e3530]:
+              - generic [ref=f3e3531]: 24.2 °C
+              - generic [ref=f3e3532]: 51.4 %
+            - generic [ref=f3e3533]: DHT22 sensor
+          - generic [ref=f3e3534]:
+            - generic [ref=f3e3539]:
+              - heading "Safety Status" [level=3] [ref=f3e3540]
+              - paragraph [ref=f3e3541]: System protection
+            - generic [ref=f3e3542]: Normal
+            - generic [ref=f3e3543]: "Emergency stop: Inactive"
+          - generic [ref=f3e3544]:
+            - generic [ref=f3e3550]:
+              - heading "Uptime" [level=3] [ref=f3e3551]
+              - paragraph [ref=f3e3552]: Device online time
+            - generic [ref=f3e3553]: 13m 21s
+            - generic [ref=f3e3554]: "Last seen: just now"
+          - generic [ref=f3e3555]:
+            - generic [ref=f3e3561]:
+              - heading "Reservoir & Field" [level=3] [ref=f3e3562]
+              - paragraph [ref=f3e3563]: Tank, rain board & LDR
+            - generic [ref=f3e3564]: 83.8 %
+            - generic [ref=f3e3565]: "Vol: 41.9 L · Rain: 0% · Light: 22133 lx"
+            - progressbar "Water tank level percentage" [ref=f3e3566]
+          - generic [ref=f3e3568]:
+            - generic [ref=f3e3569]:
+              - generic [ref=f3e3573]:
+                - heading "Web Weather & Skip" [level=3] [ref=f3e3574]
+                - paragraph [ref=f3e3575]: Dehli, India
+              - generic "soil already moist (69.1% >= 68%)" [ref=f3e3576]: RAIN SKIP
+            - generic [ref=f3e3577]: 24.0 °C
+            - generic [ref=f3e3578]: "Condition: Smoky haze · 52% RH · 0.0 mm"
+        - generic [ref=f3e3579]:
+          - generic [ref=f3e3580]:
+            - generic [ref=f3e3581]:
+              - heading "Soil Moisture History" [level=3] [ref=f3e3582]
+              - combobox "Time range" [ref=f3e3584] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Soil moisture over time" [ref=f3e3586]
+          - generic [ref=f3e3587]:
+            - generic [ref=f3e3588]:
+              - heading "Flow Rate History" [level=3] [ref=f3e3589]
+              - combobox "Time range" [ref=f3e3591] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Flow rate over time" [ref=f3e3593]
+          - generic [ref=f3e3594]:
+            - generic [ref=f3e3595]:
+              - heading "Temperature & Humidity" [level=3] [ref=f3e3596]
+              - combobox "Time range" [ref=f3e3598] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Temperature and humidity over time" [ref=f3e3600]
+          - generic [ref=f3e3601]:
+            - generic [ref=f3e3602]:
+              - heading "Pump Activity" [level=3] [ref=f3e3603]
+              - combobox "Time range" [ref=f3e3605] [cursor=pointer]:
+                - option "Last Hour"
+                - option "Last 6 Hours" [selected]
+                - option "Last 24 Hours"
+                - option "Last 7 Days"
+            - generic "Pump on/off timeline" [ref=f3e3607]
+  - generic "Notifications"

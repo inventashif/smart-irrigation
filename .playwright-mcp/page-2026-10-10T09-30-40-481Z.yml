@@ -1,0 +1,246 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - navigation "Main navigation" [ref=f4e3]:
+      - generic [ref=f4e4]: Smart Irrigation
+      - navigation [ref=f4e10]:
+        - link "Dashboard" [ref=f4e11] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "Devices" [ref=f4e18] [cursor=pointer]:
+          - /url: "#devices"
+        - link "Telemetry" [active] [ref=f4e23] [cursor=pointer]:
+          - /url: "#telemetry"
+        - link "Commands" [ref=f4e28] [cursor=pointer]:
+          - /url: "#commands"
+        - link "Settings" [ref=f4e33] [cursor=pointer]:
+          - /url: "#settings"
+      - generic [ref=f4e38]:
+        - generic [ref=f4e39]: Connected
+        - generic [ref=f4e42]: v1.0.0
+    - main [ref=f4e43]:
+      - generic [ref=f4e44]:
+        - generic [ref=f4e45]:
+          - heading "Telemetry" [level=1] [ref=f4e199]
+          - navigation "Breadcrumb" [ref=f4e47]:
+            - generic [ref=f4e200]: Smart Irrigation
+            - generic [ref=f4e201]: /
+            - generic [ref=f4e202]: Sensor history & export
+        - generic [ref=f4e51]:
+          - generic [ref=f4e52]:
+            - generic [ref=f4e53]: Select Device
+            - combobox "Select device" [ref=f4e54] [cursor=pointer]:
+              - option "ESP32-DEMO-001" [selected]
+          - button "Toggle theme" [ref=f4e55] [cursor=pointer]
+          - button "Refresh data" [ref=f4e59] [cursor=pointer]
+      - region [ref=f4e203]:
+        - generic [ref=f4e204]:
+          - heading "Telemetry History" [level=2] [ref=f4e205]
+          - generic [ref=f4e206]:
+            - combobox "Filter by device" [ref=f4e207] [cursor=pointer]:
+              - option "All Devices" [selected]
+              - option "ESP32-DEMO-001"
+            - combobox "Time range" [ref=f4e208] [cursor=pointer]:
+              - option "Last Hour"
+              - option "Last 6 Hours" [selected]
+              - option "Last 24 Hours"
+              - option "Last 7 Days"
+              - option "Last 30 Days"
+            - button "Export CSV" [ref=f4e209] [cursor=pointer]
+        - generic [ref=f4e213]:
+          - grid [ref=f4e215]:
+            - rowgroup [ref=f4e216]:
+              - row [ref=f4e217]:
+                - columnheader "Timestamp" [ref=f4e218]
+                - columnheader "Device" [ref=f4e219]
+                - columnheader "Soil Moisture" [ref=f4e220]
+                - columnheader "Flow (L/min)" [ref=f4e221]
+                - columnheader "Total Vol (L)" [ref=f4e222]
+                - columnheader "Temp (°C)" [ref=f4e223]
+                - columnheader "Humidity (%)" [ref=f4e224]
+                - columnheader "Pump" [ref=f4e225]
+                - columnheader "Safety" [ref=f4e226]
+            - rowgroup [ref=f4e227]:
+              - row [ref=f4e228]:
+                - gridcell "Oct 10, 02:52:05 PM" [ref=f4e229]
+                - gridcell "ESP32-DEMO-001" [ref=f4e230]
+                - gridcell "35.1 %" [ref=f4e231]
+                - gridcell "0.00" [ref=f4e232]
+                - gridcell "0.00" [ref=f4e233]
+                - gridcell "27.5" [ref=f4e234]
+                - gridcell "64.8" [ref=f4e235]
+                - gridcell "Stopped" [ref=f4e236]
+                - gridcell "OK" [ref=f4e238]
+              - row [ref=f4e240]:
+                - gridcell "Oct 10, 02:52:03 PM" [ref=f4e241]
+                - gridcell "ESP32-DEMO-001" [ref=f4e242]
+                - gridcell "34.7 %" [ref=f4e243]
+                - gridcell "0.00" [ref=f4e244]
+                - gridcell "0.00" [ref=f4e245]
+                - gridcell "27.4" [ref=f4e246]
+                - gridcell "64.0" [ref=f4e247]
+                - gridcell "Stopped" [ref=f4e248]
+                - gridcell "OK" [ref=f4e250]
+              - row [ref=f4e252]:
+                - gridcell "Oct 10, 02:52:01 PM" [ref=f4e253]
+                - gridcell "ESP32-DEMO-001" [ref=f4e254]
+                - gridcell "34.9 %" [ref=f4e255]
+                - gridcell "0.00" [ref=f4e256]
+                - gridcell "0.00" [ref=f4e257]
+                - gridcell "27.5" [ref=f4e258]
+                - gridcell "64.5" [ref=f4e259]
+                - gridcell "Stopped" [ref=f4e260]
+                - gridcell "OK" [ref=f4e262]
+              - row [ref=f4e264]:
+                - gridcell "Oct 10, 02:51:59 PM" [ref=f4e265]
+                - gridcell "ESP32-DEMO-001" [ref=f4e266]
+                - gridcell "35.1 %" [ref=f4e267]
+                - gridcell "0.00" [ref=f4e268]
+                - gridcell "0.00" [ref=f4e269]
+                - gridcell "27.6" [ref=f4e270]
+                - gridcell "64.4" [ref=f4e271]
+                - gridcell "Stopped" [ref=f4e272]
+                - gridcell "OK" [ref=f4e274]
+              - row [ref=f4e276]:
+                - gridcell "Oct 10, 02:51:57 PM" [ref=f4e277]
+                - gridcell "ESP32-DEMO-001" [ref=f4e278]
+                - gridcell "35.3 %" [ref=f4e279]
+                - gridcell "0.00" [ref=f4e280]
+                - gridcell "0.00" [ref=f4e281]
+                - gridcell "27.6" [ref=f4e282]
+                - gridcell "63.9" [ref=f4e283]
+                - gridcell "Stopped" [ref=f4e284]
+                - gridcell "OK" [ref=f4e286]
+              - row [ref=f4e288]:
+                - gridcell "Oct 10, 02:51:55 PM" [ref=f4e289]
+                - gridcell "ESP32-DEMO-001" [ref=f4e290]
+                - gridcell "35.3 %" [ref=f4e291]
+                - gridcell "0.00" [ref=f4e292]
+                - gridcell "0.00" [ref=f4e293]
+                - gridcell "27.5" [ref=f4e294]
+                - gridcell "63.9" [ref=f4e295]
+                - gridcell "Stopped" [ref=f4e296]
+                - gridcell "OK" [ref=f4e298]
+              - row [ref=f4e300]:
+                - gridcell "Oct 10, 02:51:53 PM" [ref=f4e301]
+                - gridcell "ESP32-DEMO-001" [ref=f4e302]
+                - gridcell "34.5 %" [ref=f4e303]
+                - gridcell "0.00" [ref=f4e304]
+                - gridcell "0.00" [ref=f4e305]
+                - gridcell "27.7" [ref=f4e306]
+                - gridcell "63.7" [ref=f4e307]
+                - gridcell "Stopped" [ref=f4e308]
+                - gridcell "OK" [ref=f4e310]
+              - row [ref=f4e312]:
+                - gridcell "Oct 10, 02:51:51 PM" [ref=f4e313]
+                - gridcell "ESP32-DEMO-001" [ref=f4e314]
+                - gridcell "35.8 %" [ref=f4e315]
+                - gridcell "0.00" [ref=f4e316]
+                - gridcell "0.00" [ref=f4e317]
+                - gridcell "27.7" [ref=f4e318]
+                - gridcell "64.4" [ref=f4e319]
+                - gridcell "Stopped" [ref=f4e320]
+                - gridcell "OK" [ref=f4e322]
+              - row [ref=f4e324]:
+                - gridcell "Oct 10, 02:51:49 PM" [ref=f4e325]
+                - gridcell "ESP32-DEMO-001" [ref=f4e326]
+                - gridcell "35.6 %" [ref=f4e327]
+                - gridcell "0.00" [ref=f4e328]
+                - gridcell "0.00" [ref=f4e329]
+                - gridcell "27.3" [ref=f4e330]
+                - gridcell "63.3" [ref=f4e331]
+                - gridcell "Stopped" [ref=f4e332]
+                - gridcell "OK" [ref=f4e334]
+              - row [ref=f4e336]:
+                - gridcell "Oct 10, 02:51:47 PM" [ref=f4e337]
+                - gridcell "ESP32-DEMO-001" [ref=f4e338]
+                - gridcell "34.4 %" [ref=f4e339]
+                - gridcell "0.00" [ref=f4e340]
+                - gridcell "0.00" [ref=f4e341]
+                - gridcell "27.4" [ref=f4e342]
+                - gridcell "63.0" [ref=f4e343]
+                - gridcell "Stopped" [ref=f4e344]
+                - gridcell "OK" [ref=f4e346]
+              - row [ref=f4e348]:
+                - gridcell "Oct 10, 02:51:45 PM" [ref=f4e349]
+                - gridcell "ESP32-DEMO-001" [ref=f4e350]
+                - gridcell "35.8 %" [ref=f4e351]
+                - gridcell "0.00" [ref=f4e352]
+                - gridcell "0.00" [ref=f4e353]
+                - gridcell "27.6" [ref=f4e354]
+                - gridcell "63.3" [ref=f4e355]
+                - gridcell "Stopped" [ref=f4e356]
+                - gridcell "OK" [ref=f4e358]
+              - row [ref=f4e360]:
+                - gridcell "Oct 10, 02:51:43 PM" [ref=f4e361]
+                - gridcell "ESP32-DEMO-001" [ref=f4e362]
+                - gridcell "35.4 %" [ref=f4e363]
+                - gridcell "0.00" [ref=f4e364]
+                - gridcell "0.00" [ref=f4e365]
+                - gridcell "27.3" [ref=f4e366]
+                - gridcell "63.7" [ref=f4e367]
+                - gridcell "Stopped" [ref=f4e368]
+                - gridcell "OK" [ref=f4e370]
+              - row [ref=f4e372]:
+                - gridcell "Oct 10, 02:51:40 PM" [ref=f4e373]
+                - gridcell "ESP32-DEMO-001" [ref=f4e374]
+                - gridcell "34.2 %" [ref=f4e375]
+                - gridcell "0.00" [ref=f4e376]
+                - gridcell "0.00" [ref=f4e377]
+                - gridcell "27.7" [ref=f4e378]
+                - gridcell "64.4" [ref=f4e379]
+                - gridcell "Stopped" [ref=f4e380]
+                - gridcell "OK" [ref=f4e382]
+              - row [ref=f4e384]:
+                - gridcell "Oct 10, 02:51:38 PM" [ref=f4e385]
+                - gridcell "ESP32-DEMO-001" [ref=f4e386]
+                - gridcell "34.9 %" [ref=f4e387]
+                - gridcell "0.00" [ref=f4e388]
+                - gridcell "0.00" [ref=f4e389]
+                - gridcell "27.4" [ref=f4e390]
+                - gridcell "64.6" [ref=f4e391]
+                - gridcell "Stopped" [ref=f4e392]
+                - gridcell "OK" [ref=f4e394]
+              - row [ref=f4e396]:
+                - gridcell "Oct 10, 02:51:36 PM" [ref=f4e397]
+                - gridcell "ESP32-DEMO-001" [ref=f4e398]
+                - gridcell "34.3 %" [ref=f4e399]
+                - gridcell "0.00" [ref=f4e400]
+                - gridcell "0.00" [ref=f4e401]
+                - gridcell "27.5" [ref=f4e402]
+                - gridcell "63.6" [ref=f4e403]
+                - gridcell "Stopped" [ref=f4e404]
+                - gridcell "OK" [ref=f4e406]
+              - row [ref=f4e408]:
+                - gridcell "Oct 10, 02:51:34 PM" [ref=f4e409]
+                - gridcell "ESP32-DEMO-001" [ref=f4e410]
+                - gridcell "35.3 %" [ref=f4e411]
+                - gridcell "0.00" [ref=f4e412]
+                - gridcell "0.00" [ref=f4e413]
+                - gridcell "27.1" [ref=f4e414]
+                - gridcell "63.5" [ref=f4e415]
+                - gridcell "Stopped" [ref=f4e416]
+                - gridcell "OK" [ref=f4e418]
+              - row [ref=f4e420]:
+                - gridcell "Oct 10, 02:51:32 PM" [ref=f4e421]
+                - gridcell "ESP32-DEMO-001" [ref=f4e422]
+                - gridcell "35.1 %" [ref=f4e423]
+                - gridcell "0.00" [ref=f4e424]
+                - gridcell "0.00" [ref=f4e425]
+                - gridcell "27.3" [ref=f4e426]
+                - gridcell "63.1" [ref=f4e427]
+                - gridcell "Stopped" [ref=f4e428]
+                - gridcell "OK" [ref=f4e430]
+              - row [ref=f4e432]:
+                - gridcell "Oct 10, 02:51:30 PM" [ref=f4e433]
+                - gridcell "ESP32-DEMO-001" [ref=f4e434]
+                - gridcell "35.3 %" [ref=f4e435]
+                - gridcell "0.00" [ref=f4e436]
+                - gridcell "0.00" [ref=f4e437]
+                - gridcell "27.7" [ref=f4e438]
+                - gridcell "64.0" [ref=f4e439]
+                - gridcell "Stopped" [ref=f4e440]
+                - gridcell "OK" [ref=f4e442]
+          - generic "Telemetry pagination" [ref=f4e444]:
+            - button "‹ Prev" [disabled] [ref=f4e445]
+            - button "1" [ref=f4e446] [cursor=pointer]
+            - button "Next ›" [disabled] [ref=f4e447]
+  - generic "Notifications"

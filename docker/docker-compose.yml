@@ -1,0 +1,31 @@
+# Smart Irrigation — full stack in Docker.
+# Run from the project root:  docker compose -f docker/docker-compose.yml up --build
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - irrigation-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hardware-sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: ["python", "-m", "hardware_sim.run",
+              "--base-url", "http://backend:8000",
+              "--device-code", "ESP32-DEMO-001",
+              "--interval", "5"]
+
+volumes:
+  irrigation-data:
