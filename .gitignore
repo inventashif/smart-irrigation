@@ -1,0 +1,11 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local runtime data / artifacts
+*.db
+console-*.log
+logs/
+
+# Browser automation harness artifacts
+.playwright-mcp/
