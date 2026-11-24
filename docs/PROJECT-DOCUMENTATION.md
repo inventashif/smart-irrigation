@@ -324,6 +324,10 @@ cutting one changes what the firmware can sense.
   scheduled runs on rain or wet soil.
 - **Pump watchdogs** surfaced as a safety banner: stale-command superseding,
   maximum run time, dry tank and comms loss.
+- **Wet-soil / rain auto-stop** (Hardware Lab): while the pump runs, it stops
+  automatically when soil moisture reaches 68% or the rain board is at 25% or
+  higher; stops are logged as `SAFE` entries with reasons `soil_too_wet`
+  / `rain_auto_stop`, visible via `safety_reason` in `/api/sim/state`.
 
 ### 5.7 Global behaviour
 

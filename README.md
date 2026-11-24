@@ -138,6 +138,13 @@ wire carries a state, and cutting one changes what the firmware can sense.
   cancelled schedule cleans up its run pair, and the firmware stops the pump on
   maximum run time, dry tank, or lost backend contact. Reboot leaves the pump
   off and the relay de-energised.
+- **Wet-soil / rain auto-stop (Lab).** While the pump runs, the Lab stops it
+  automatically when the soil is wet (`soil.moisture_pct >= 68%`, the weather
+  advisor's `soil_wet_threshold` default) or the rain board reads 25% or
+  higher (the Lab UI's "Rain-skip active" level). Stops are logged as `SAFE`
+  entries (`soil_too_wet` / `rain_auto_stop`) and visible via `safety_reason`
+  in `/api/sim/state`. Thresholds are attributes of `VirtualESP32`
+  (`soil_wet_stop_pct`, `rain_stop_pct`) so they can be tuned.
 
 The lab drives the same backend the real device uses: telemetry goes through
 `POST /api/devices/{code}/telemetry` and commands through the normal command

@@ -67,6 +67,10 @@ class VirtualESP32:
         self.poll_interval_s = poll_interval_s
         self.max_pump_run_s = max_pump_run_s
         self.comms_timeout_s = comms_timeout_s
+        # Auto-stop thresholds while the pump is running (wet-soil / rain skip;
+        # same defaults as the weather advisor and the Lab's rain-skip hint).
+        self.soil_wet_stop_pct = 68.0
+        self.rain_stop_pct = 25.0
         self._transport_post = transport_post
         self._transport_get = transport_get
         self.device_ip = device_ip
@@ -390,6 +394,26 @@ class VirtualESP32:
             self.comms_fault = True
             self._set_pump(False, force=True, reason="comms_loss_cutoff")
             self._log("SAFE", f"Auto-STOP: backend unreachable for >{int(self.comms_timeout_s)}s")
+        # 4. Soil-too-wet auto stop (wet-soil skip; threshold matches the weather
+        #    advisor's soil_wet_threshold default)
+        if self.soil_wet_stop_pct > 0 and self.soil.moisture_pct >= self.soil_wet_stop_pct:
+            self._set_pump(False, force=True, reason="soil_too_wet")
+            self._log(
+                "SAFE",
+                f"Auto-STOP: soil moisture {self.soil.moisture_pct:.0f}% "
+                f">= {self.soil_wet_stop_pct:.0f}% (wet soil)",
+            )
+            return
+        # 5. Rain auto stop (rain board at/above threshold; matches the Lab
+        #    UI's "Rain-skip active" display at 25%)
+        if self.rain_stop_pct > 0 and self.rain.rain_pct >= self.rain_stop_pct:
+            self._set_pump(False, force=True, reason="rain_auto_stop")
+            self._log(
+                "SAFE",
+                f"Auto-STOP: rain board wet {self.rain.rain_pct:.0f}% "
+                f">= {self.rain_stop_pct:.0f}%",
+            )
+            return
 
     # -- single step & main loop -------------------------------------------
     def step(self, tick_s: float = 0.25, force_telemetry: bool = False) -> bool | None:
