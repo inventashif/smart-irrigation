@@ -222,9 +222,10 @@ const Api = {
     return this._fetch(`/api/devices/${encodeURIComponent(code)}/state`);
   },
 
-  async getTelemetry(code, { since, limit = 1000, offset = 0 } = {}) {
+  async getTelemetry(code, { since, limit = 1000, offset = 0, order } = {}) {
     const q = new URLSearchParams({ limit: String(limit), offset: String(offset) });
     if (since) q.set('since', since);
+    if (order) q.set('order', order);
     return this._fetch(`/api/devices/${encodeURIComponent(code)}/telemetry?${q}`);
   },
 
@@ -801,6 +802,8 @@ function renderDashboardCards(state) {
   if (flowEl) flowEl.textContent = t?.flow_rate_lpm != null ? `${fmtNum(t.flow_rate_lpm, 2)} L/min` : '— L/min';
   const volEl = $('#totalVolume');
   if (volEl) volEl.textContent = t?.cumulative_water_litres != null ? fmtNum(t.cumulative_water_litres, 2) : '—';
+  const flowFaultEl = $('#flowFaultBadge');
+  if (flowFaultEl) flowFaultEl.classList.toggle('hidden', !t?.flow_fault);
 
   // Environment
   const tempEl = $('#tempValue');
@@ -979,7 +982,7 @@ async function loadTelemetryPage(page = 1) {
   const since = isoSecondsAgo(RANGE_SECONDS[range] || RANGE_SECONDS['6h']);
   const offset = (page - 1) * App.telemetryPageSize;
   try {
-    const res = await trackFetch(Api.getTelemetry(code, { since, limit: App.telemetryPageSize, offset }));
+    const res = await trackFetch(Api.getTelemetry(code, { since, limit: App.telemetryPageSize, offset, order: 'desc' }));
     App.telemetryTotal = res.total || 0;
     renderTelemetryTable(res.items || [], code);
     renderTelemetryPagination();
@@ -995,7 +998,7 @@ function renderTelemetryTable(items, code) {
     body.innerHTML = `<tr><td colspan="10" class="muted text-center">No telemetry for ${escapeHtml(code)} in this range.</td></tr>`;
     return;
   }
-  body.innerHTML = [...items].reverse().map((r) => {
+  body.innerHTML = items.map((r) => {
     const pump = r.pump_state || 'off';
     const badge = pump === 'on' ? 'running' : 'stopped';
     const lock = !!r.safety_lock;
@@ -1061,7 +1064,7 @@ async function exportTelemetryCsv() {
     const cols = ['recorded_at', '_received_at', 'device_code', 'soil_moisture_pct', 'raw_adc',
       'temperature_c', 'humidity_pct', 'rain_pct', 'tank_level_pct', 'tank_litres',
       'light_pct', 'light_lux', 'flow_rate_lpm', 'flow_pulse_count',
-      'cumulative_water_litres', 'pump_state', 'safety_lock', 'comms_fault', 'uptime_ms'];
+      'cumulative_water_litres', 'flow_fault', 'pump_state', 'safety_lock', 'comms_fault', 'uptime_ms'];
     const esc = (v) => (v == null ? '' : `"${String(v).replaceAll('"', '""')}"`);
     const csv = [cols.join(',')]
       .concat(items.map((r) => cols.map((c) => esc(r[c])).join(',')))

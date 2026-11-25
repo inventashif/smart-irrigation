@@ -955,7 +955,10 @@
                         <div class="callout">A typical YF-S201 is specified around 1–30 L/min.
                             Your tiny pump may not produce enough flow to turn its rotor.
                             Zero pulses can occur even with water moving; calibrate using a
-                            measured volume and check the sensor's actual datasheet.</div>
+                            measured volume and check the sensor's actual datasheet.
+                            The firmware raises <b>flow_fault</b> when the pump has run for
+                            10 s without a pulse, so a disconnected sensor cannot look like
+                            a valid 0 L/min reading.</div>
                     </div>
                 </article>
 

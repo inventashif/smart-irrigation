@@ -88,6 +88,8 @@ use a suitable 3.3 V pull-up instead; see the visual guide for details.
 
 A typical YF-S201 operates around 1–30 L/min. The small pump may not reach the
 minimum measurable flow. Zero pulses alone do not establish that no water flows.
+The firmware reports `flow_fault: true` when the pump has been on for 10 s with
+no pulses, so a disconnected sensor is not mistaken for a valid 0 L/min reading.
 
 ## DHT22
 

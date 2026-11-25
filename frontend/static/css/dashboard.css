@@ -797,6 +797,19 @@ body {
     margin-top: var(--space-2);
 }
 
+.flow-fault {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--color-warning-light);
+    color: var(--color-warning);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+}
+
 .progress-bar {
     height: 8px;
     background: var(--color-bg-tertiary);

@@ -34,7 +34,10 @@ struct ClimateReading {
 
 volatile unsigned long flowPulseCount = 0;
 unsigned long lastFlowPulseSnapshot = 0;
+unsigned long lastFlowPulseMs = 0;
 float cumulativeWaterLitres = 0.0f;
+bool flowFault = false;
+bool flowFaultLogged = false;
 
 bool pumpOn = false;
 bool safetyLock = false;
@@ -70,6 +73,8 @@ void setPump(bool on, bool force = false) {
   lastStateChangeMs = now;
   if (on) {
     pumpStartedMs = now;
+    lastFlowPulseMs = now;  // give the flow sensor a fresh window on each start
+    flowFault = false;
   }
 }
 
@@ -214,7 +219,7 @@ bool sendTelemetry(const SoilReading &soil, const ClimateReading &climate,
   String payload = "{";
   payload += "\"device_code\":\"" + String(DEVICE_CODE) + "\",";
   payload += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
-  payload += "\"firmware_version\":\"esp32-real-1.3.0\",";
+  payload += "\"firmware_version\":\"esp32-real-1.4.0\",";
   payload += "\"recorded_at\":" + (ts.length() ? ("\"" + ts + "\"") : "null") + ",";
   payload += "\"uptime_ms\":" + String(millis()) + ",";
   payload += "\"raw_adc\":" + (soil.valid ? String(soil.rawAdc) : "null") + ",";
@@ -224,6 +229,7 @@ bool sendTelemetry(const SoilReading &soil, const ClimateReading &climate,
   payload += "\"flow_rate_lpm\":" + jsonFloatOrNull(flowRateLpm, flowValid, 3) + ",";
   payload += "\"flow_pulse_count\":" + (flowValid ? String(pulseCount) : "null") + ",";
   payload += "\"cumulative_water_litres\":" + jsonFloatOrNull(cumulativeWaterLitres, flowValid, 3) + ",";
+  payload += "\"flow_fault\":" + String(flowFault ? "true" : "false") + ",";
   payload += "\"pump_state\":\"" + String(pumpOn ? "on" : "off") + "\",";
   payload += "\"safety_lock\":" + String(safetyLock ? "true" : "false") + ",";
   payload += "\"comms_fault\":" + String(commsFault ? "true" : "false") + ",";
@@ -314,6 +320,7 @@ void simulateSensors(SoilReading &soil, ClimateReading &climate,
                      unsigned long intervalMs) {
   static float phase = 0.0f;
   phase += 0.05f;
+  flowFault = false;  // simulated pulses are always present while pumping
   soil.valid = true;
   soil.rawAdc = (int)(2100 + 250 * sin(phase));
   soil.moisturePct = 45.0f + 5.0f * sin(phase);
@@ -405,6 +412,10 @@ void loop() {
       soil = readSoil();
       float t, h;
       climate.valid = readDHT22(t, h);
+      if (!climate.valid) {
+        Serial.printf("DHT22 read failed: soil_valid=%d, raw_adc=%d\n",
+                      soil.valid, soil.rawAdc);
+      }
       if (climate.valid) {
         climate.temperatureC = t;
         climate.humidityPct = h;
@@ -420,6 +431,23 @@ void loop() {
         cumulativeWaterLitres += litres;
         flowRateLpm = litres / (intervalMs / 60000.0f);
         flowValid = true;
+
+        unsigned long flowNow = millis();
+        if (intervalPulses > 0) {
+          lastFlowPulseMs = flowNow;
+          flowFault = false;
+        } else if (pumpOn) {
+          // No pulses while pumping: sensor unplugged/miswired, or no water.
+          flowFault = (flowNow - lastFlowPulseMs) > FLOW_NO_PULSE_TIMEOUT_MS;
+        } else {
+          flowFault = false;  // zero flow with the pump off is normal
+        }
+        if (flowFault && !flowFaultLogged) {
+          Serial.println("WARN: pump on but no flow pulses — check flow sensor wiring / water flow");
+          flowFaultLogged = true;
+        } else if (!flowFault) {
+          flowFaultLogged = false;
+        }
       }
     }
 

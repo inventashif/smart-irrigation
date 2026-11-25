@@ -36,6 +36,9 @@
 // --- Flow sensor ---
 #define FLOW_SENSOR_PRESENT true
 #define FLOW_PULSES_PER_LITRE 450.0f  // replace with measured calibration
+// Pump running with zero pulses for this long is reported as flow_fault:
+// the sensor is not wired/level-shifted correctly, or no water is moving.
+#define FLOW_NO_PULSE_TIMEOUT_MS 10000UL
 
 // --- DHT22 ---
 #define DHT22_PRESENT true
