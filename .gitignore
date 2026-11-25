@@ -2,7 +2,9 @@
 __pycache__/
 *.py[cod]
 
-# Local runtime data / artifacts
+# Local tooling & build artifacts
+bin/
+firmware/config.local.h
 *.db
 console-*.log
 logs/

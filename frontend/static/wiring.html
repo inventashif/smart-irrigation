@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description"
+        content="Wire-by-wire ESP32 guide for DHT22, capacitive soil sensor, YF-S201 and a 3–6 V pump.">
+    <title>Smart Irrigation · Real hardware wiring guide</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #f5f5f0;
+            --ink: #172e2c;
+            --muted: #5c706a;
+            --line: #d8dfd7;
+            --green: #12674e;
+            --soft: #e6eee5;
+            --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font: 15px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        button, input, select { font: inherit; }
+        button, select, a, input { -webkit-tap-highlight-color: transparent; }
+        button, select { cursor: pointer; }
+        a { color: var(--green); text-underline-offset: 4px; }
+        :focus-visible { outline: 3px solid #d68422; outline-offset: 4px; }
+        code { font: .87em var(--mono); }
+        button {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink);
+            border-radius: 7px;
+            padding: 8px 13px;
+            font-weight: 600;
+        }
+        button:hover { background: var(--soft); }
+        .container { width: min(1660px, calc(100% - 72px)); margin: auto; }
+        .masthead {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 22px 0;
+            border-bottom: 1px solid var(--line);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; font-weight: 750; }
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            color: white;
+            background: var(--green);
+        }
+        .masthead nav { display: flex; align-items: center; gap: 24px; font-size: 13px; }
+        .masthead a { text-decoration: none; }
+        .edition, .eyebrow { font: 11px var(--mono); letter-spacing: .12em; }
+        .edition { color: var(--muted); }
+        .hero {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 64px;
+            align-items: end;
+            padding: 50px 0 34px;
+        }
+        .eyebrow { color: var(--green); font-weight: 600; text-transform: uppercase; }
+        h1 { font-size: clamp(34px, 4vw, 57px); letter-spacing: -.055em; line-height: 1.08; }
+        h1 { margin: 15px 0 16px; font-weight: 650; }
+        h1 span { color: var(--green); }
+        .hero p { color: var(--muted); max-width: 600px; margin: 0; }
+        .hero-aside {
+            padding: 20px 24px;
+            border-left: 3px solid var(--green);
+            background: var(--soft);
+            border-radius: 0 10px 10px 0;
+        }
+        .hero-aside strong { display: block; font-size: 14px; margin-bottom: 5px; }
+        .hero-aside p { font-size: 13px; }
+        .specs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; }
+        .specs span {
+            font: 11px var(--mono);
+            padding: 7px 10px;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+        }
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 36px 0 16px;
+        }
+        h2 { margin: 0; font-size: 23px; letter-spacing: -.035em; }
+        .section-heading p { color: var(--muted); margin: 0; font-size: 13px; }
+        .sheet {
+            border: 1px solid #273c48;
+            background: #10212d;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 16px 44px #163b2a10;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 15px 20px;
+            background: #182c39;
+            border-bottom: 1px solid #324552;
+            color: #edf3f6;
+        }
+        .toolbar label { font-size: 12px; color: #b7c7cf; }
+        .toolbar select {
+            margin-left: 8px;
+            padding: 7px 10px;
+            border: 1px solid #4b626f;
+            background: #10212d;
+            color: #edf3f6;
+            border-radius: 5px;
+            max-width: 100%;
+        }
+        .zoom { display: flex; align-items: center; gap: 6px; }
+        .zoom button {
+            padding: 5px 12px;
+            border-color: #415662;
+            background: #203744;
+            color: white;
+            min-width: 36px;
+        }
+        .zoom button:hover { background: #365564; }
+        .zoom output { font: 11px var(--mono); min-width: 42px; text-align: center; }
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 14px 20px 4px; }
+        .filters button {
+            padding: 6px 13px;
+            border: 1px solid #39515f;
+            color: #bdd0da;
+            background: transparent;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+        .filters button[aria-pressed="true"] {
+            color: #10261e;
+            background: #abdfb6;
+            border-color: #abdfb6;
+        }
+        .drawing-viewport { overflow: auto; max-height: 1000px; }
+        #wiring-map { display: block; width: 100%; min-width: 1000px; height: auto; }
+        #wiring-map text {
+            fill: #e0eaf0;
+            font-family: var(--mono);
+            font-size: 13px;
+        }
+        #wiring-map .muted { fill: #9bb0bf; font-size: 11px; }
+        #wiring-map .part-title { font: 600 17px system-ui, sans-serif; fill: #eef5f8; }
+        #wiring-map .part-number { font-size: 11px; fill: #b5c9d5; }
+        #wiring-map .pcb-text { fill: #e1e5df; font-size: 10px; }
+        #wiring-map .pin-label { font-size: 11px; }
+        #wiring-map .wire-halo {
+            fill: none;
+            stroke: #10212d;
+            stroke-width: 8;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        #wiring-map .wire-line {
+            fill: none;
+            stroke-width: 3;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+        #wiring-map .wire-hit { fill: none; stroke: transparent; stroke-width: 16; }
+        #wiring-map .wire { cursor: pointer; }
+        #wiring-map .wire.dim { opacity: .13; }
+        #wiring-map .wire.selected .wire-line { stroke-width: 5; }
+        #wiring-map .wire:hover .wire-line, #wiring-map .wire:focus .wire-line {
+            stroke-width: 5;
+        }
+        #wiring-map .wire-badge { opacity: 0; pointer-events: none; }
+        #wiring-map .selected .wire-badge,
+        #wiring-map .wire:hover .wire-badge,
+        #wiring-map .wire:focus .wire-badge { opacity: 1; }
+        .sheet-bottom {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 14px 20px;
+            color: #a8bfca;
+            border-top: 1px solid #324552;
+            font-size: 12px;
+        }
+        .legend { display: flex; flex-wrap: wrap; gap: 14px; }
+        .legend i {
+            display: inline-block;
+            width: 14px;
+            height: 3px;
+            background: var(--wire);
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .inspector {
+            display: grid;
+            grid-template-columns: 130px 1fr auto;
+            gap: 20px;
+            align-items: center;
+            padding: 20px 24px;
+            background: #e6eee5;
+            border: 1px solid #ccdaca;
+            border-radius: 10px;
+            margin-top: 14px;
+        }
+        .inspector .tag { color: var(--green); font: 12px var(--mono); }
+        .inspector h3 { margin: 0 0 3px; font-size: 15px; }
+        .inspector p { margin: 0; color: var(--muted); font-size: 13px; }
+        .board-note { font-size: 12px; color: var(--muted); margin: 12px 2px 0; }
+        .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .detail-card {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            scroll-margin-top: 20px;
+        }
+        .detail-head { padding: 24px 26px 12px; }
+        .detail-head .eyebrow { font-size: 10px; }
+        h3 { font-size: 19px; margin: 7px 0; letter-spacing: -.02em; }
+        .detail-head p { margin: 0; font-size: 13px; color: var(--muted); }
+        .detail-body { padding: 0 26px 24px; font-size: 13px; }
+        .detail-body p { margin: 12px 0 0; }
+        .detail-body ul { padding-left: 18px; margin: 12px 0 0; }
+        .diagram-scroll { overflow-x: auto; padding: 8px 14px; }
+        .detail-diagram { display: block; width: 100%; min-width: 500px; height: auto; }
+        .detail-diagram text { font: 13px var(--mono); fill: #243d38; }
+        .detail-diagram .small { font-size: 11px; fill: #536e65; }
+        .detail-diagram .label { font: 650 15px system-ui, sans-serif; }
+        .detail-diagram .trace { fill: none; stroke-width: 3; stroke-linejoin: round; }
+        .callout {
+            background: #fff6e7;
+            border-left: 3px solid #d9a33b;
+            padding: 12px 15px;
+            margin-top: 14px;
+            border-radius: 0 6px 6px 0;
+            color: #70531b;
+        }
+        .callout code { color: #594115; }
+        details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+        summary { cursor: pointer; color: var(--green); font-weight: 650; }
+        .parts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            background: #e9eee6;
+            border: 1px solid #d2dccd;
+            border-radius: 12px;
+            margin: 28px 0;
+        }
+        .parts > div { padding: 22px 26px; }
+        .parts > div + div { border-left: 1px solid #d2dccd; }
+        .parts h3 { font-size: 14px; margin: 0 0 8px; }
+        .parts p { margin: 0; font-size: 13px; color: var(--muted); }
+        .ledger {
+            border: 1px solid var(--line);
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .ledger-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 22px;
+            background: #edf2e9;
+        }
+        .ledger-summary p { margin: 0; font-size: 12px; color: var(--muted); }
+        .progress { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        progress { width: 110px; height: 8px; accent-color: var(--green); }
+        #progress-label { font: 12px var(--mono); }
+        .table-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        th {
+            font: 10px var(--mono);
+            text-align: left;
+            letter-spacing: .07em;
+            color: var(--muted);
+            background: #fafbf7;
+            padding: 13px 16px;
+            text-transform: uppercase;
+        }
+        td { border-top: 1px solid #e7ece5; padding: 11px 16px; font-size: 12px; }
+        td:first-child { width: 50px; }
+        td:last-child { width: 34%; color: var(--muted); }
+        tr.selected { background: #eef6e9; }
+        tr.completed .wire-id::after { content: " ✓"; color: var(--green); }
+        .wire-id { border: 0; padding: 3px 0; font: 11px var(--mono); }
+        .wire-id::before {
+            content: "";
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--wire);
+            border-radius: 50%;
+            margin-right: 7px;
+            border: 1px solid #172e2c40;
+        }
+        input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--green); }
+        .finish {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 36px;
+            margin: 36px 0 50px;
+            padding: 26px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+        }
+        .finish h3 { margin-top: 0; }
+        .finish ol { padding-left: 20px; font-size: 13px; color: var(--muted); }
+        .finish pre {
+            padding: 18px;
+            font: 12px/1.9 var(--mono);
+            color: #cce6d9;
+            background: #173a30;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .finish p { font-size: 13px; color: var(--muted); }
+        footer {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            border-top: 1px solid var(--line);
+            padding: 20px 0 30px;
+            color: var(--muted);
+            font: 11px var(--mono);
+        }
+        .noscript { padding: 20px; background: #fff1ce; }
+        @media (max-width: 1000px) {
+            .container { width: calc(100% - 36px); }
+            .hero { gap: 28px; }
+            .details-grid { grid-template-columns: 1fr; }
+            .parts > div { padding: 18px; }
+        }
+        @media (max-width: 640px) {
+            .container { width: calc(100% - 24px); }
+            .masthead { padding: 16px 0; }
+            .masthead nav { gap: 14px; }
+            .edition, .masthead .desktop-link { display: none; }
+            .brand { font-size: 13px; }
+            .hero { grid-template-columns: 1fr; padding: 30px 0 20px; gap: 20px; }
+            .hero-aside { padding: 16px; }
+            .toolbar { padding: 12px; }
+            .toolbar select { display: block; margin: 5px 0 0; }
+            .filters { padding: 12px; }
+            .inspector { grid-template-columns: 1fr; gap: 8px; padding: 16px; }
+            .inspector a { font-size: 13px; }
+            .parts { grid-template-columns: 1fr; }
+            .parts > div + div { border-left: 0; border-top: 1px solid #d2dccd; }
+            .finish { grid-template-columns: 1fr; padding: 20px; gap: 16px; }
+            .detail-head { padding: 20px 20px 10px; }
+            .detail-body { padding: 0 20px 20px; }
+            .section-heading h2 { font-size: 21px; }
+            .ledger-summary { padding: 14px; flex-wrap: wrap; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+        }
+        @page { size: A3 landscape; margin: 13mm; }
+        @media print {
+            body { background: white; font-size: 11px; print-color-adjust: exact; }
+            .container { width: 100%; }
+            .masthead nav, .toolbar, .filters, .zoom, .inspector,
+            #reset-checks, .ledger-summary p, .board-note { display: none; }
+            .masthead { padding: 0 0 8px; }
+            .hero { padding: 16px 0; gap: 24px; }
+            h1 { font-size: 32px; }
+            .hero .specs { margin-top: 10px; }
+            .sheet { break-after: page; }
+            .drawing-viewport { overflow: visible; max-height: none; }
+            #wiring-map { width: 100% !important; min-width: 0; max-height: 205mm; }
+            #wiring-map .wire.dim { opacity: 1; }
+            #wiring-map .wire-badge { opacity: 0; }
+            .detail-card, .parts, .finish { break-inside: avoid; }
+            .details-grid { grid-template-columns: 1fr 1fr; }
+            .detail-diagram { min-width: 0; }
+            .table-scroll { overflow: visible; }
+            table { min-width: 0; }
+            .ledger { overflow: visible; break-before: page; }
+            tr { break-inside: avoid; }
+            td { padding: 7px 12px; }
+            .section-heading { margin: 16px 0 10px; }
+            .wire-id { color: var(--ink); }
+            .finish { margin: 20px 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="masthead">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3S5 11 5 15a7 7 0 0 0 14 0c0-4-7-12-7-12Z"
+                            stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M9 16c0 2 1 3 3 3" stroke="currentColor" stroke-width="1.6"/>
+                    </svg>
+                </span>
+                Smart Irrigation <span class="edition">/ FIELD NOTES</span>
+            </div>
+            <nav aria-label="Guide navigation">
+                <a href="#connections" class="desktop-link">Connection list</a>
+                <a id="dashboard-link" href="http://127.0.0.1:8000/#devices">Dashboard ↗</a>
+                <button id="print-guide" type="button">Print / PDF</button>
+            </nav>
+        </header>
+        <main>
+            <section class="hero" aria-labelledby="title">
+                <div>
+                    <div class="eyebrow">Build guide 01 / Your real hardware</div>
+                    <h1>Every wire.<br><span>One clear connection.</span></h1>
+                    <p>ESP32 + your actual sensor set. Follow the colored wires, inspect each
+                        endpoint, and use the close-ups to assemble the small circuits.</p>
+                    <div class="specs">
+                        <span>ESP32-REAL-001</span><span>3–6 V DC PUMP</span>
+                        <span>GPIO 32 · 33 · 25 · 27</span><span>OFFLINE-READY HTML</span>
+                    </div>
+                </div>
+                <aside class="hero-aside">
+                    <strong>Read the labels on your board first.</strong>
+                    <p>The chip is confirmed as ESP32-D0WD-V3 with a CP2102 USB bridge.
+                        USB identification does not tell us the header or relay-terminal order.
+                        Choose your header count below, then match the <b>printed GPIO names</b>.
+                        All drawings show the component side; USB points down.</p>
+                </aside>
+            </section>
+
+            <div class="section-heading">
+                <h2>01 / The complete wiring map</h2>
+                <p>Click a wire or filter a circuit. Scroll to pan; zoom for the pin labels.</p>
+            </div>
+            <noscript>
+                <p class="noscript">Enable JavaScript for the interactive map and connection ledger.
+                    All enlarged wiring diagrams and instructions below remain readable.</p>
+            </noscript>
+            <section class="sheet" aria-label="Interactive wiring map">
+                <div class="toolbar">
+                    <label for="board-layout">ESP32 header reference
+                        <select id="board-layout">
+                            <option value="30">30-pin DevKit V1 reference</option>
+                            <option value="38">38-pin DevKitC / WROOM reference</option>
+                        </select>
+                    </label>
+                    <div class="zoom" aria-label="Diagram zoom">
+                        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+                        <output id="zoom-value">Fit</output>
+                        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+                        <button id="zoom-fit" type="button">Fit</button>
+                    </div>
+                </div>
+                <div class="filters" role="group" aria-label="Highlight a circuit">
+                    <button type="button" data-filter="all" aria-pressed="true">All wires</button>
+                    <button type="button" data-filter="power" aria-pressed="false">Power rails</button>
+                    <button type="button" data-filter="soil" aria-pressed="false">Soil</button>
+                    <button type="button" data-filter="dht" aria-pressed="false">DHT22</button>
+                    <button type="button" data-filter="flow" aria-pressed="false">Flow</button>
+                    <button type="button" data-filter="relay" aria-pressed="false">Relay input</button>
+                    <button type="button" data-filter="pump" aria-pressed="false">Pump circuit</button>
+                </div>
+                <div class="drawing-viewport" tabindex="0" aria-label="Scrollable wiring diagram">
+                    <svg id="wiring-map" viewBox="0 0 1640 1070"
+                        xmlns="http://www.w3.org/2000/svg" aria-labelledby="map-title map-description">
+                        <title id="map-title">Real ESP32 irrigation hardware: every electrical connection</title>
+                        <desc id="map-description">USB powers the ESP32. GPIO32 reads soil,
+                            GPIO33 reads DHT22, GPIO25 reads level-shifted flow pulses,
+                            GPIO27 drives a compatible active-low relay. Isolated relay contacts
+                            switch a separate 5 volt pump supply. The numbered connection table
+                            below describes each individual wire.</desc>
+                        <defs>
+                            <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+                                <circle cx="1" cy="1" r=".8" fill="#537080" opacity=".22"/>
+                            </pattern>
+                            <linearGradient id="shield" x1="0" y1="0" x2="1" y2=".4">
+                                <stop stop-color="#d5dadd"/><stop offset=".5" stop-color="#9ca8ad"/>
+                                <stop offset="1" stop-color="#e5e9e9"/>
+                            </linearGradient>
+                            <linearGradient id="relay-blue" x1="0" y1="0" x2="0" y2="1">
+                                <stop stop-color="#2587cd"/><stop offset="1" stop-color="#115c9b"/>
+                            </linearGradient>
+                            <pattern id="grille" width="12" height="12" patternUnits="userSpaceOnUse">
+                                <rect width="12" height="12" fill="#e9eeec"/>
+                                <rect x="2" y="2" width="8" height="7" rx="1" fill="#718a8e"/>
+                            </pattern>
+                        </defs>
+                        <rect width="1640" height="1070" fill="url(#grid)"/>
+                        <text x="60" y="40" class="muted">CONNECTION PLAN / FRONT VIEW / NOT TO SCALE</text>
+                        <text x="1580" y="40" text-anchor="end" class="muted">
+                            SOLID WIRES = ELECTRICAL · DOTS = JOINS
+                        </text>
+
+                        <!-- Physical component illustrations. Port order is labeled explicitly. -->
+                        <g id="soil-component">
+                            <rect x="60" y="180" width="320" height="270" rx="12"
+                                fill="#182d38" stroke="#3f5b61"/>
+                            <text x="80" y="204" class="part-number">A / ANALOG SENSOR</text>
+                            <text x="80" y="228" class="part-title">Capacitive soil v1.2</text>
+                            <path d="M92 246H159V391L125 432L92 391Z"
+                                fill="#242a2b" stroke="#77885f" stroke-width="2"/>
+                            <path d="M105 302V385L125 412L145 385V302M114 306V380L125 395
+                                L136 380V306" fill="none" stroke="#c4b36b" stroke-width="3"/>
+                            <rect x="110" y="262" width="26" height="18" fill="#080f14"/>
+                            <path d="M97 295H154" stroke="#d2c28a" stroke-dasharray="3 3"/>
+                            <text x="174" y="376" class="muted">Only the probe</text>
+                            <text x="174" y="393" class="muted">enters the soil.</text>
+                            <text x="174" y="413" class="muted">Keep PCB top dry.</text>
+                            <path d="M160 255H380" stroke="#efb75b" stroke-width="2"/>
+                            <path d="M160 270H191V295H380" stroke="#9cabb7" fill="none"/>
+                            <path d="M160 285H181V335H380" stroke="#6de0a1" fill="none"/>
+                            <text x="254" y="248">VCC / +</text>
+                            <text x="254" y="288">GND / −</text>
+                            <text x="254" y="328">AOUT / A</text>
+                        </g>
+                        <g id="dht-component">
+                            <rect x="60" y="505" width="320" height="225" rx="12"
+                                fill="#182d38" stroke="#3f5b61"/>
+                            <text x="80" y="529" class="part-number">B / TEMPERATURE + HUMIDITY</text>
+                            <rect x="88" y="553" width="116" height="105" rx="6" fill="#e9eeec"/>
+                            <rect x="97" y="566" width="98" height="73" fill="url(#grille)"/>
+                            <text x="146" y="650" text-anchor="middle" fill="#314844"
+                                style="fill:#314844;font-size:10px">DHT22 / AM2302</text>
+                            <path d="M105 658V678M132 658V678M160 658V678M187 658V678"
+                                stroke="#c5c7c3" stroke-width="5"/>
+                            <text x="105" y="698" text-anchor="middle" class="muted">1 +</text>
+                            <text x="132" y="717" text-anchor="middle" class="muted">2 D</text>
+                            <text x="160" y="698" text-anchor="middle" class="muted">3 NC</text>
+                            <text x="187" y="717" text-anchor="middle" class="muted">4 −</text>
+                            <path d="M105 678H75V545H225V555H380"
+                                fill="none" stroke="#efb75b" stroke-width="1.5"/>
+                            <path d="M187 678H225V595H380"
+                                fill="none" stroke="#9cabb7" stroke-width="1.5"/>
+                            <path d="M132 678V686H238V635H380"
+                                fill="none" stroke="#bc9bff" stroke-width="1.5"/>
+                            <text x="255" y="548">1 / VCC</text>
+                            <text x="255" y="588">4 / GND</text>
+                            <text x="255" y="628">2 / DATA</text>
+                        </g>
+                        <g id="board-body">
+                            <text x="770" y="161" text-anchor="middle" class="part-title">
+                                ESP32 · USB connected
+                            </text>
+                            <text x="770" y="180" text-anchor="middle" class="muted"
+                                id="board-subtitle">30-pin reference · read the silkscreen</text>
+                            <rect x="650" y="195" width="240" height="550" rx="18"
+                                fill="#203c35" stroke="#728a76" stroke-width="2"/>
+                            <circle cx="669" cy="213" r="7" fill="#0b1720" stroke="#a4ad95"/>
+                            <circle cx="871" cy="213" r="7" fill="#0b1720" stroke="#a4ad95"/>
+                            <circle cx="669" cy="724" r="7" fill="#0b1720" stroke="#a4ad95"/>
+                            <circle cx="871" cy="724" r="7" fill="#0b1720" stroke="#a4ad95"/>
+                            <rect x="724" y="204" width="100" height="263" rx="3"
+                                fill="#283f31" stroke="#958c59"/>
+                            <path d="M733 250V220H744V240H756V220H768V240H780V220H793
+                                V240H812V215" fill="none" stroke="#cfbd72" stroke-width="4"/>
+                            <rect x="721" y="265" width="106" height="193" rx="4"
+                                fill="url(#shield)" stroke="#e0e6e5" stroke-width="2"/>
+                            <text x="774" y="313" text-anchor="middle"
+                                style="fill:#42534f;font-size:15px">ESPRESSIF</text>
+                            <text x="774" y="338" text-anchor="middle"
+                                style="fill:#42534f;font-size:11px">ESP32</text>
+                            <text x="774" y="355" text-anchor="middle"
+                                style="fill:#42534f;font-size:11px">WROOM-32</text>
+                            <text x="774" y="432" text-anchor="middle"
+                                style="fill:#42534f;font-size:10px">2.4 GHz Wi-Fi</text>
+                            <rect x="751" y="537" width="45" height="46" fill="#0b1315"
+                                stroke="#91a298"/>
+                            <text x="774" y="564" text-anchor="middle" class="pcb-text">CP2102</text>
+                            <rect x="728" y="497" width="12" height="24" fill="#99998b"/>
+                            <rect x="802" y="491" width="12" height="31" fill="#252420"/>
+                            <path d="M743 510H765V533M797 550H814V620M774 584V671"
+                                stroke="#61826d" fill="none"/>
+                            <rect x="705" y="684" width="30" height="22" rx="3" fill="#b7bfbd"/>
+                            <circle cx="720" cy="695" r="6" fill="#253138"/>
+                            <rect x="812" y="684" width="30" height="22" rx="3" fill="#b7bfbd"/>
+                            <circle cx="827" cy="695" r="6" fill="#253138"/>
+                            <text x="720" y="679" text-anchor="middle" class="pcb-text">EN</text>
+                            <text x="827" y="679" text-anchor="middle" class="pcb-text">BOOT</text>
+                            <rect x="744" y="698" width="62" height="47" rx="5"
+                                fill="url(#shield)" stroke="#eef3f1"/>
+                            <rect x="752" y="733" width="46" height="9" rx="3" fill="#172329"/>
+                            <text x="774" y="650" text-anchor="middle" class="pcb-text">USB ↓</text>
+                        </g>
+                        <g id="board-pins"></g>
+                        <g id="flow-component">
+                            <rect x="1130" y="180" width="440" height="220" rx="12"
+                                fill="#182d38" stroke="#3f5b61"/>
+                            <text x="1150" y="204" class="part-number">C / HALL-EFFECT FLOW SENSOR</text>
+                            <text x="1355" y="228" text-anchor="middle" class="part-title">YF-S201</text>
+                            <rect x="1250" y="269" width="50" height="62" rx="5"
+                                fill="#222c2d" stroke="#7d8f8c"/>
+                            <rect x="1440" y="269" width="64" height="62" rx="5"
+                                fill="#222c2d" stroke="#7d8f8c"/>
+                            <path d="M1260 271V329M1270 271V329M1280 271V329M1460 271V329
+                                M1470 271V329M1480 271V329" stroke="#778883" stroke-width="3"/>
+                            <ellipse cx="1370" cy="297" rx="80" ry="62"
+                                fill="#20292c" stroke="#6c7e83" stroke-width="2"/>
+                            <circle cx="1370" cy="287" r="40" fill="#111b20" stroke="#71878b"/>
+                            <text x="1370" y="282" text-anchor="middle">YF-S201</text>
+                            <path d="M1346 300H1392L1384 293M1392 300L1384 307"
+                                stroke="#d6e1de" fill="none" stroke-width="2"/>
+                            <text x="1370" y="378" text-anchor="middle" class="muted">
+                                Water follows the molded arrow →
+                            </text>
+                            <path d="M1130 245H1220L1295 270" stroke="#ff7c7e" fill="none"/>
+                            <path d="M1130 285H1220L1292 286" stroke="#9cabb7" fill="none"/>
+                            <path d="M1130 325H1220L1295 306" stroke="#f7d66b" fill="none"/>
+                            <text x="1144" y="238">Red / +5V</text>
+                            <text x="1144" y="278">Black / GND</text>
+                            <text x="1144" y="318">Yellow / SIG</text>
+                        </g>
+                        <g id="relay-component">
+                            <rect x="1130" y="450" width="440" height="240" rx="12"
+                                fill="#182d38" stroke="#3f5b61"/>
+                            <text x="1150" y="474" class="part-number">D / 5 V ACTIVE-LOW RELAY MODULE</text>
+                            <rect x="1198" y="492" width="353" height="152" rx="6"
+                                fill="#286c58" stroke="#749e7a"/>
+                            <rect x="1235" y="510" width="150" height="115" rx="4"
+                                fill="url(#relay-blue)" stroke="#8dc2e1"/>
+                            <text x="1310" y="542" text-anchor="middle"
+                                style="font-size:11px">RELAY</text>
+                            <text x="1310" y="562" text-anchor="middle"
+                                style="font-size:11px">5 V DC COIL</text>
+                            <text x="1310" y="590" text-anchor="middle"
+                                style="font-size:10px">isolated contacts</text>
+                            <path d="M1130 510H1228M1130 550H1228M1130 590H1228"
+                                stroke="#91a49b" stroke-width="1.5"/>
+                            <text x="1143" y="503">VCC</text>
+                            <text x="1143" y="543">GND</text>
+                            <text x="1143" y="583">IN *</text>
+                            <rect x="1490" y="497" width="60" height="129" rx="3"
+                                fill="#31824a" stroke="#88bc81"/>
+                            <circle cx="1520" cy="510" r="9" fill="#aabfb7" stroke="#263e37"/>
+                            <circle cx="1520" cy="560" r="9" fill="#aabfb7" stroke="#263e37"/>
+                            <circle cx="1520" cy="610" r="9" fill="#aabfb7" stroke="#263e37"/>
+                            <path d="M1514 510H1526M1514 560H1526M1514 610H1526"
+                                stroke="#344d42" stroke-width="2"/>
+                            <path d="M1529 510H1570M1529 560H1570M1529 610H1570"
+                                stroke="#91a49b"/>
+                            <text x="1476" y="515" text-anchor="end">NC ×</text>
+                            <text x="1476" y="565" text-anchor="end">COM</text>
+                            <text x="1476" y="615" text-anchor="end">NO</text>
+                            <text x="1150" y="667" class="muted">
+                                * Direct GPIO only for verified 3.3 V-compatible IN.
+                            </text>
+                            <text x="1150" y="684" class="muted">
+                                Terminal order varies; follow the printed labels.
+                            </text>
+                        </g>
+                        <g id="pump-domain">
+                            <rect x="1130" y="770" width="440" height="260" rx="12"
+                                fill="#27302e" stroke="#a69667" stroke-dasharray="7 5"/>
+                            <text x="1150" y="797" class="part-number">
+                                E / SEPARATE 5 V PUMP POWER LOOP
+                            </text>
+                            <rect x="1155" y="825" width="175" height="134" rx="8"
+                                fill="#242d32" stroke="#a5afa5"/>
+                            <text x="1242" y="851" text-anchor="middle">REGULATED</text>
+                            <text x="1242" y="883" text-anchor="middle"
+                                style="font-size:24px;fill:#efe5be">5 V DC</text>
+                            <text x="1242" y="909" text-anchor="middle" class="muted">
+                                separate adapter
+                            </text>
+                            <text x="1315" y="850" text-anchor="end">+</text>
+                            <text x="1315" y="935" text-anchor="end">−</text>
+                            <rect x="1435" y="862" width="95" height="73" rx="17"
+                                fill="#298da5" stroke="#98d3db"/>
+                            <rect x="1441" y="862" width="24" height="73" rx="9"
+                                fill="#bad1cf"/>
+                            <rect x="1500" y="839" width="20" height="30" rx="5"
+                                fill="#91c2c3"/>
+                            <path d="M1420 850H1470V862M1420 930H1435" fill="none"
+                                stroke="#b7c8c6"/>
+                            <text x="1476" y="902" text-anchor="middle"
+                                style="font-size:11px">3–6 V</text>
+                            <text x="1480" y="963" text-anchor="middle" class="muted">Mini pump</text>
+                            <text x="1150" y="1007" class="muted">
+                                Pump − returns here, not to ESP32 GND.
+                            </text>
+                        </g>
+                        <g id="rails">
+                            <text x="70" y="819" class="part-number">3.3 V LOGIC / ONE JOINED STRIP</text>
+                            <path d="M70 840H980" stroke="#efb75b" stroke-width="6"/>
+                            <text x="70" y="869" class="part-number">USB 5 V ACCESSORIES / SEPARATE STRIP</text>
+                            <path d="M70 890H980" stroke="#ff7c7e" stroke-width="6"/>
+                            <text x="70" y="919" class="part-number">COMMON LOGIC GND / SEPARATE STRIP</text>
+                            <path d="M70 940H980" stroke="#9cabb7" stroke-width="6"/>
+                            <text x="70" y="984" class="muted">
+                                Breadboard rails shown as continuous strips. Bridge a split rail if needed.
+                            </text>
+                            <text x="70" y="1012" class="muted">
+                                WATER PATH: reservoir → pump → YF-S201 arrow → outlet / plant
+                            </text>
+                        </g>
+                        <g id="wires"></g>
+                        <g id="passives">
+                            <rect x="503" y="339" width="14" height="45" rx="3"
+                                fill="#d2b87a" stroke="#ebd5a0"/>
+                            <path d="M504 348H516M504 356H516M504 366H516"
+                                stroke="#8c6731" stroke-width="3"/>
+                            <text x="496" y="354" text-anchor="end" class="muted">4.7kΩ</text>
+                            <text x="496" y="372" text-anchor="end" class="muted">pull-up</text>
+                            <rect x="998" y="349" width="14" height="41" rx="3"
+                                fill="#d2b87a" stroke="#ebd5a0"/>
+                            <path d="M999 358H1011M999 368H1011M999 378H1011"
+                                stroke="#8c6731" stroke-width="3"/>
+                            <text x="966" y="360" text-anchor="end" class="muted">R1 10kΩ</text>
+                            <rect x="998" y="445" width="14" height="41" rx="3"
+                                fill="#d2b87a" stroke="#ebd5a0"/>
+                            <path d="M999 454H1011M999 464H1011M999 474H1011"
+                                stroke="#8c6731" stroke-width="3"/>
+                            <text x="990" y="464" text-anchor="end" class="muted">R2 15kΩ</text>
+                            <circle cx="1005" cy="420" r="5" fill="#f7d66b"/>
+                            <text x="1016" y="418" class="muted">3.0 V</text>
+                            <circle cx="510" cy="422" r="5" fill="#bc9bff" id="pullup-join"/>
+                            <rect x="1372" y="876" width="16" height="34" rx="4"
+                                fill="#131a21" stroke="#a8b6ba"/>
+                            <rect x="1373" y="879" width="14" height="5" fill="#d2d9d6"/>
+                            <text x="1380" y="868" text-anchor="middle"
+                                style="font-size:10px">K / band ↑</text>
+                            <text x="1393" y="908" style="font-size:10px">A</text>
+                            <text x="1380" y="982" text-anchor="middle" class="muted">1N4007</text>
+                        </g>
+                        <g id="fixed-labels">
+                            <text x="825" y="85" text-anchor="middle"
+                                style="fill:#65d6e2">GPIO27 → relay IN (compatibility required)</text>
+                            <text x="825" y="126" text-anchor="middle"
+                                style="fill:#f7d66b">Divider tap → GPIO25 · never raw 5 V</text>
+                            <text x="775" y="804" text-anchor="middle">USB to laptop</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="sheet-bottom">
+                    <div class="legend">
+                        <span><i style="--wire:#efb75b"></i>3.3 V</span>
+                        <span><i style="--wire:#ff7c7e"></i>5 V / pump +</span>
+                        <span><i style="--wire:#9cabb7"></i>Ground / return</span>
+                        <span><i style="--wire:#6de0a1"></i>Soil</span>
+                        <span><i style="--wire:#bc9bff"></i>DHT</span>
+                        <span><i style="--wire:#f7d66b"></i>Flow</span>
+                        <span><i style="--wire:#65d6e2"></i>Relay IN</span>
+                    </div>
+                    <span>Crossing without a dot ≠ connection. Colors are guide colors.</span>
+                </div>
+            </section>
+            <aside class="inspector" aria-live="polite" aria-atomic="true">
+                <div class="tag" id="inspect-id">WIRE INSPECTOR</div>
+                <div>
+                    <h3 id="inspect-title">Select a wire to trace its exact endpoints.</h3>
+                    <p id="inspect-note">The numbered ledger below includes all 27 connection segments.</p>
+                </div>
+                <a id="inspect-link" href="#connections">Connection ledger ↓</a>
+            </aside>
+            <p class="board-note">
+                Neither reference proves your board's physical pin order. Match <b>32 / 33 / 25 / 27</b>
+                on its silkscreen. Unused pins and relay NC stay disconnected. GPIO13 LED is optional;
+                its separate circuit is below. Drawings are illustrations, not photos of your modules.
+            </p>
+
+            <div class="section-heading">
+                <h2>02 / Build the small circuits correctly</h2>
+                <p>Enlarged views · exact endpoints · module variants explained</p>
+            </div>
+            <div class="details-grid">
+                <article class="detail-card" id="power-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">01 / Power distribution</div>
+                        <h3>Three logic rails. A separate pump supply.</h3>
+                        <p>Unplug USB and pump power while attaching wires.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 230" role="img"
+                            aria-label="USB to ESP32. 3.3 volt rail powers soil and DHT. 5 volt rail powers flow and relay. Common ground joins logic components.">
+                            <rect x="20" y="42" width="130" height="145" rx="8"
+                                fill="#e4eee5" stroke="#9aac9f"/>
+                            <text x="85" y="73" text-anchor="middle" class="label">ESP32</text>
+                            <text x="85" y="97" text-anchor="middle" class="small">powered by USB</text>
+                            <text x="135" y="124" text-anchor="end">3V3</text>
+                            <text x="135" y="149" text-anchor="end">5V/VIN</text>
+                            <text x="135" y="174" text-anchor="end">GND</text>
+                            <path d="M150 120H210V55H625" class="trace" stroke="#bc781e"/>
+                            <path d="M150 145H230V115H625" class="trace" stroke="#cf4e50"/>
+                            <path d="M150 170H250V180H625" class="trace" stroke="#687c81"/>
+                            <text x="275" y="42">3.3 V → soil VCC + DHT22 VCC</text>
+                            <text x="275" y="102">5 V → YF-S201 red + relay VCC</text>
+                            <text x="275" y="166">GND → all logic-side GNDs</text>
+                            <text x="275" y="207" class="small">Never join the 3.3 V and 5 V rails.</text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <ul>
+                            <li>Use three distinct breadboard strips for 3.3 V, 5 V and GND.
+                                Check for breaks halfway along long power rails.</li>
+                            <li>Use the board's 5 V/VIN pin as a USB-derived supply only if its
+                                pinout confirms that connection. Do not feed external 5 V into
+                                that pin while USB is attached.</li>
+                            <li>If USB cannot supply the relay coil and sensors reliably, power
+                                those accessories from a separate regulated 5 V supply;
+                                join its negative to logic GND, not its positive to USB/VIN.</li>
+                            <li>Keep the <b>pump power loop separate</b>. Its negative goes only
+                                to the pump and flyback diode, not to the ESP32 ground rail.</li>
+                        </ul>
+                    </div>
+                </article>
+
+                <article class="detail-card" id="soil-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">02 / Capacitive soil moisture v1.2</div>
+                        <h3>Use the analog output on GPIO32.</h3>
+                        <p>GPIO32 is ADC1, so it works while Wi-Fi is active.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 230" role="img"
+                            aria-label="Soil sensor VCC to 3.3V, GND to logic ground and AOUT to GPIO32.">
+                            <path d="M40 25H155V174L98 212L40 174Z"
+                                fill="#293c34" stroke="#829576" stroke-width="2"/>
+                            <path d="M55 100V163L98 193L140 163V100M70 104V155L98 176
+                                L125 155V104" stroke="#cfbd7f" fill="none" stroke-width="3"/>
+                            <text x="98" y="55" text-anchor="middle"
+                                style="fill:#f1f4df">SOIL v1.2</text>
+                            <path d="M155 65H580" class="trace" stroke="#bc781e"/>
+                            <path d="M155 110H580" class="trace" stroke="#687c81"/>
+                            <path d="M155 155H580" class="trace" stroke="#248556"/>
+                            <text x="180" y="53">VCC / +</text><text x="485" y="53">3.3 V</text>
+                            <text x="180" y="98">GND / −</text><text x="485" y="98">GND</text>
+                            <text x="180" y="143">AOUT / A</text><text x="485" y="143">GPIO32</text>
+                            <text x="180" y="203" class="small">Header order varies: use the printed labels.</text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <p>Power this sensor from <b>3.3 V</b> so its analog signal stays in
+                            the ESP32 input range. Only insert the coated probe section into soil;
+                            keep the connector and electronics above the soil line.</p>
+                        <p>After connecting, record dry and wet ADC values for <code>SOIL_DRY_ADC</code>
+                            and <code>SOIL_WET_ADC</code>. The current defaults are placeholders.
+                            An open analog pin can float; a plausible value alone does not prove
+                            a good connection.</p>
+                    </div>
+                </article>
+
+                <article class="detail-card" id="dht-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">03 / DHT22 · AM2302</div>
+                        <h3>DATA needs a pull-up to 3.3 V.</h3>
+                        <p>Bare four-pin DHT22: grille facing you, legs pointing down.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 280" role="img"
+                            aria-label="DHT22 front view: pin 1 VCC to 3.3V, pin 2 DATA to GPIO33 with a 4.7k pull-up to 3.3V, pin 3 unconnected, pin 4 GND.">
+                            <rect x="35" y="35" width="210" height="105" rx="8"
+                                fill="#e9ede7" stroke="#9caea0"/>
+                            <path d="M50 52H230M50 67H230M50 82H230M50 97H230"
+                                stroke="#9caaa3" stroke-width="6" stroke-dasharray="9 4"/>
+                            <text x="140" y="125" text-anchor="middle" class="label">DHT22</text>
+                            <path d="M65 140V165M115 140V165M165 140V165M215 140V165"
+                                stroke="#7f8b87" stroke-width="5"/>
+                            <text x="65" y="156" text-anchor="middle" dy="26">1</text>
+                            <text x="115" y="156" text-anchor="middle" dy="26">2</text>
+                            <text x="165" y="156" text-anchor="middle" dy="26">3</text>
+                            <text x="215" y="156" text-anchor="middle" dy="26">4</text>
+                            <path d="M65 165V204H280V40H610" class="trace" stroke="#bc781e"/>
+                            <path d="M115 165V222H315V145H610" class="trace" stroke="#8761c9"/>
+                            <path d="M215 165V243H610" class="trace" stroke="#687c81"/>
+                            <text x="548" y="31">3.3 V</text>
+                            <text x="533" y="134">GPIO33</text>
+                            <text x="552" y="232">GND</text>
+                            <path d="M420 40V74M420 114V145" class="trace" stroke="#8761c9"/>
+                            <rect x="411" y="74" width="18" height="40" fill="#dfc797"
+                                stroke="#967a46"/>
+                            <text x="444" y="98">4.7 kΩ</text>
+                            <circle cx="420" cy="40" r="5" fill="#bc781e"/>
+                            <circle cx="420" cy="145" r="5" fill="#8761c9"/>
+                            <text x="165" y="197" text-anchor="middle" class="small">NC</text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <p>The 4.7 kΩ resistor connects <b>between DATA and 3.3 V</b>, not
+                            in series with the signal. Leave pin 3 unconnected.</p>
+                        <p><b>Three-pin module or cabled AM2302?</b> Use its <code>VCC / +</code>,
+                            <code>DATA / OUT</code> and <code>GND / −</code> labels; the physical order
+                            and wire colors can differ. Omit the extra resistor only if the
+                            module already has a pull-up to its 3.3 V supply.</p>
+                        <p>Keep VCC and the data pull-up at 3.3 V in this build. A pull-up to
+                            5 V must not connect directly to GPIO33.</p>
+                    </div>
+                </article>
+
+                <article class="detail-card" id="flow-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">04 / YF-S201 · 5 V pulse-output reference</div>
+                        <h3>The yellow wire goes through a divider.</h3>
+                        <p>Use 10 kΩ above the tap and 15 kΩ below it, preferably 1% resistors.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 285" role="img"
+                            aria-label="YF-S201 red to 5V and black to ground. Yellow to 10k resistor then junction to GPIO25. Junction through 15k resistor to ground.">
+                            <rect x="25" y="70" width="135" height="120" rx="30"
+                                fill="#293b3e" stroke="#7f9391"/>
+                            <text x="92" y="105" text-anchor="middle"
+                                style="fill:white">YF-S201</text>
+                            <text x="92" y="127" text-anchor="middle"
+                                style="fill:#c5ded5;font-size:11px">red / black / yellow</text>
+                            <path d="M160 85H600" class="trace" stroke="#cf4e50"/>
+                            <text x="184" y="73">Red → 5 V supply</text>
+                            <path d="M160 185V257H605" class="trace" stroke="#687c81"/>
+                            <text x="184" y="244">Black → logic GND</text>
+                            <path d="M160 142H265M325 142H600" class="trace" stroke="#ae8413"/>
+                            <rect x="265" y="133" width="60" height="18" fill="#dfc797"
+                                stroke="#967a46"/>
+                            <text x="278" y="121">10 kΩ</text>
+                            <text x="175" y="164" class="small">Yellow</text>
+                            <text x="534" y="131">GPIO25</text>
+                            <circle cx="420" cy="142" r="5" fill="#ae8413"/>
+                            <path d="M420 142V176M420 221V257" class="trace" stroke="#ae8413"/>
+                            <rect x="411" y="176" width="18" height="45" fill="#dfc797"
+                                stroke="#967a46"/>
+                            <text x="442" y="202">15 kΩ</text>
+                            <circle cx="420" cy="257" r="5" fill="#687c81"/>
+                            <text x="440" y="165" class="small">≈ 3.0 V HIGH</text>
+                            <text x="190" y="34" class="small">5 × 15 / (10 + 15) = 3.0 V</text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <p>The junction between the two resistors is the <b>only signal
+                            connection to GPIO25</b>. Flow sensor ground, divider ground and
+                            ESP32 ground are joined. The top and bottom resistors are not interchangeable.</p>
+                        <p>This 10 kΩ / 15 kΩ pair gives more voltage margin than the older
+                            10 kΩ / 20 kΩ example. It changes no firmware settings. Verify the
+                            divider high level is within 3.3 V before connecting GPIO25.</p>
+                        <details>
+                            <summary>If your sensor has an open-collector output</summary>
+                            <p>Check its actual datasheet/output circuit. A verified open-collector
+                                output without an internal 5 V pull-up can instead use a 4.7–10 kΩ
+                                pull-up from yellow to 3.3 V and connect yellow to GPIO25,
+                                with the divider removed. Do not assume every YF-S201 clone
+                                has that output type.</p>
+                        </details>
+                        <div class="callout">A typical YF-S201 is specified around 1–30 L/min.
+                            Your tiny pump may not produce enough flow to turn its rotor.
+                            Zero pulses can occur even with water moving; calibrate using a
+                            measured volume and check the sensor's actual datasheet.</div>
+                    </div>
+                </article>
+
+                <article class="detail-card" id="relay-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">05 / Relay input side</div>
+                        <h3>5 V coil does not mean 3.3 V input.</h3>
+                        <p>The uploaded firmware expects an active-LOW relay on GPIO27.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 210" role="img"
+                            aria-label="For a verified 3.3V-compatible active-low relay only: 5V to VCC, common GND to GND and GPIO27 to IN.">
+                            <rect x="425" y="25" width="195" height="150" rx="8"
+                                fill="#e5eee5" stroke="#9cac9c"/>
+                            <rect x="525" y="45" width="78" height="99" rx="3"
+                                fill="#207db4"/>
+                            <text x="564" y="95" text-anchor="middle"
+                                style="fill:white;font-size:11px">5V RELAY</text>
+                            <path d="M45 60H425" class="trace" stroke="#cf4e50"/>
+                            <path d="M45 105H425" class="trace" stroke="#687c81"/>
+                            <path d="M45 150H425" class="trace" stroke="#267f91"/>
+                            <text x="45" y="48">5 V rail</text><text x="439" y="64">VCC</text>
+                            <text x="45" y="93">Logic GND</text><text x="439" y="109">GND</text>
+                            <text x="45" y="138">GPIO27</text><text x="439" y="154">IN</text>
+                            <text x="45" y="195" class="small">
+                                Firmware: RELAY_ACTIVE_LOW true → LOW energizes coil.
+                            </text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <div class="callout"><b>Confirm the relay module before attaching W22.</b>
+                            Direct GPIO27 → IN is valid only for a module explicitly compatible
+                            with 3.3 V control, with no 5 V pull-up reaching the GPIO.
+                            The exact input circuitry of your module has not been identified.</div>
+                        <p>The drawing assumes a <code>VCC / GND / IN</code> module. For boards with
+                            <code>JD-VCC</code>, jumpers or selectable trigger polarity, follow
+                            that module's schematic. Do not infer terminal order from the drawing.</p>
+                        <details>
+                            <summary>Active-LOW 5 V input only? Use a transistor interface</summary>
+                            <p>An NPN open-collector stage avoids putting the relay's 5 V input
+                                on the ESP32. It <b>inverts the control logic</b>: change
+                                <code>RELAY_ACTIVE_LOW</code> to <code>false</code>,
+                                rebuild and upload before using this alternative.</p>
+                            <div class="diagram-scroll">
+                                <svg class="detail-diagram" viewBox="0 0 610 220" role="img"
+                                    aria-label="Alternative NPN interface: GPIO27 through 2.2k to base, 100k base to emitter, emitter to GND, collector to relay IN. Requires active-high firmware setting.">
+                                    <path d="M15 95H100M150 95H290M320 75V35H585
+                                        M320 135V185H585" class="trace" stroke="#267f91"/>
+                                    <rect x="100" y="87" width="50" height="16"
+                                        fill="#dfc797" stroke="#967a46"/>
+                                    <text x="15" y="79">GPIO27</text>
+                                    <text x="104" y="119">2.2kΩ</text>
+                                    <path d="M290 68V129M290 85L320 65V35M290 110L320 140V185"
+                                        fill="none" stroke="#243d38" stroke-width="3"/>
+                                    <path d="M306 134L320 140L314 126" fill="#243d38"/>
+                                    <text x="339" y="89" class="small">NPN: 2N2222 / BC547</text>
+                                    <text x="339" y="110" class="small">Verify E / B / C pinout.</text>
+                                    <text x="467" y="23">Relay IN (C)</text>
+                                    <text x="467" y="174">GND (E)</text>
+                                    <path d="M220 95V123M220 156V185H320"
+                                        class="trace" stroke="#687c81"/>
+                                    <rect x="212" y="123" width="16" height="33"
+                                        fill="#dfc797" stroke="#967a46"/>
+                                    <text x="151" y="148">100kΩ</text>
+                                    <circle cx="220" cy="95" r="4" fill="#267f91"/>
+                                    <circle cx="320" cy="185" r="4" fill="#687c81"/>
+                                    <text x="15" y="211" class="small">
+                                        Relay VCC stays at 5 V; relay GND joins this GND.
+                                    </text>
+                                </svg>
+                            </div>
+                            <p>The 100 kΩ base-to-emitter resistor keeps the transistor OFF
+                                during reset. Check the relay's input current against the
+                                transistor/interface rating. This alternative is not the
+                                direct-input wiring used in the main map.</p>
+                        </details>
+                    </div>
+                </article>
+
+                <article class="detail-card" id="pump-detail">
+                    <div class="detail-head">
+                        <div class="eyebrow">06 / Relay contacts + mini submersible pump</div>
+                        <h3>Switch the pump’s positive lead.</h3>
+                        <p>Separate regulated 5 V DC supply, within your pump's 3–6 V rating.</p>
+                    </div>
+                    <div class="diagram-scroll">
+                        <svg class="detail-diagram" viewBox="0 0 650 300" role="img"
+                            aria-label="Pump power: 5V supply positive to relay COM, relay NO to pump positive, pump negative to supply negative. Diode cathode stripe to pump positive, anode to pump negative. NC is unused.">
+                            <rect x="16" y="68" width="123" height="150" rx="8"
+                                fill="#e5eee5" stroke="#9cac9c"/>
+                            <text x="77" y="110" text-anchor="middle" class="label">5 V DC</text>
+                            <text x="77" y="132" text-anchor="middle" class="small">separate supply</text>
+                            <text x="124" y="84">+</text><text x="124" y="206">−</text>
+                            <rect x="242" y="30" width="142" height="105" rx="7"
+                                fill="#e8eee6" stroke="#9cac9c"/>
+                            <text x="313" y="51" text-anchor="middle" class="small">RELAY CONTACTS</text>
+                            <circle cx="263" cy="80" r="5" fill="#316653"/>
+                            <circle cx="364" cy="80" r="5" fill="#316653"/>
+                            <circle cx="364" cy="115" r="5" fill="#316653"/>
+                            <path d="M263 80L345 104" stroke="#316653" stroke-width="3"/>
+                            <text x="263" y="68" text-anchor="middle">COM</text>
+                            <text x="364" y="68" text-anchor="middle">NO</text>
+                            <text x="329" y="121" text-anchor="end" class="small">NC unused</text>
+                            <path d="M139 80H258M369 80H549V112"
+                                class="trace" stroke="#cf4e50"/>
+                            <path d="M549 180V232H139V201" class="trace" stroke="#687c81"/>
+                            <circle cx="549" cy="146" r="34" fill="#c7e3e4" stroke="#458a90"/>
+                            <text x="549" y="151" text-anchor="middle" class="label">M</text>
+                            <text x="563" y="106">+</text><text x="563" y="193">−</text>
+                            <text x="596" y="137" text-anchor="middle" class="small">3–6 V</text>
+                            <text x="596" y="154" text-anchor="middle" class="small">pump</text>
+                            <path d="M450 80V125M450 180V232"
+                                class="trace" stroke="#687c81"/>
+                            <rect x="439" y="125" width="22" height="55" rx="5"
+                                fill="#273431" stroke="#576b61"/>
+                            <rect x="440" y="130" width="20" height="7" fill="#e1e7e1"/>
+                            <circle cx="450" cy="80" r="5" fill="#cf4e50"/>
+                            <circle cx="450" cy="232" r="5" fill="#687c81"/>
+                            <text x="428" y="148" text-anchor="end" class="small">1N4007</text>
+                            <text x="428" y="167" text-anchor="end" class="small">stripe UP</text>
+                            <text x="40" y="273" class="small">Band / cathode (K) → pump +</text>
+                            <text x="362" y="273" class="small">Other end / anode (A) → pump −</text>
+                        </svg>
+                    </div>
+                    <div class="detail-body">
+                        <p><b>Supply + → COM. NO → pump +. Pump − → supply −.</b>
+                            NC is empty. Choose terminal names from the relay's silkscreen;
+                            left-to-right order varies between modules.</p>
+                        <p>Fit the diode directly across the motor leads: its <b>silver band
+                            points toward pump positive</b>. A reversed diode shorts the supply
+                            when the relay closes. Use a diode rated for the motor current;
+                            check your pump's startup/stall current against the diode, adapter,
+                            wiring and relay's DC contact ratings.</p>
+                        <div class="callout">Your pump is 3–6 V: <b>never use the older 12 V BOM
+                            example</b>. Do not power the motor from an ESP32 GPIO, 3V3 pin,
+                            or the laptop USB rail. Keep the pump submerged during a pump test.</div>
+                    </div>
+                </article>
+            </div>
+
+            <section class="parts" aria-label="Extra parts needed">
+                <div>
+                    <h3>Passives to have ready</h3>
+                    <p>1 × 10 kΩ + 1 × 15 kΩ for the flow divider; 1 × 4.7 kΩ for DHT DATA
+                        if absent on the module; a correctly rated flyback diode
+                        (1N4007 reference shown).</p>
+                </div>
+                <div>
+                    <h3>Power &amp; physical assembly</h3>
+                    <p>USB data cable, separate regulated 5 V pump supply rated for startup
+                        current, breadboard, jumpers, suitable pump leads, tubing and a reservoir.
+                        Keep exposed electronics dry.</p>
+                </div>
+                <div>
+                    <h3>Optional GPIO13 status LED</h3>
+                    <p>GPIO13 → 220–330 Ω resistor → LED anode (long leg).
+                        LED cathode (short leg / flat edge) → logic GND.
+                        The firmware does not require this LED; an onboard LED may use another GPIO.</p>
+                </div>
+            </section>
+
+            <div class="section-heading" id="connections">
+                <h2>03 / Wire-by-wire connection ledger</h2>
+                <p>Click a W-number to highlight it above. Check off connections as you build.</p>
+            </div>
+            <section class="ledger" aria-label="Complete connection list">
+                <div class="ledger-summary">
+                    <div class="progress">
+                        <progress id="progress" max="27" value="0" aria-label="Wiring progress"></progress>
+                        <span id="progress-label">0 / 27 checked</span>
+                    </div>
+                    <p id="save-note">Checklist saved only in this browser; it does not verify wiring.</p>
+                    <button id="reset-checks" type="button">Reset checks</button>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr><th>Done</th><th>Wire</th><th>From</th><th>To</th><th>Connection note</th></tr>
+                        </thead>
+                        <tbody id="connection-rows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="finish" aria-label="Check the real device">
+                <div>
+                    <div class="eyebrow">04 / First power-up</div>
+                    <h3>Verify sensors before switching water.</h3>
+                    <ol>
+                        <li>Keep pump supply unplugged. Inspect polarity, GPIO labels and
+                            relay input compatibility. Then connect ESP32 USB.</li>
+                        <li>Measure the 3.3 V and 5 V rails, and check the flow-divider
+                            high voltage before attaching its tap to GPIO25.</li>
+                        <li>Open the dashboard and select <b>ESP32-REAL-001</b>.
+                            Telemetry should arrive roughly every 15 seconds.</li>
+                        <li>Check DHT readings and dry/wet soil ADC changes. Calibrate soil
+                            moisture and flow from measurements.</li>
+                        <li>Verify the relay releases on boot/STOP with pump power still removed.
+                            Then connect the pump supply and test briefly with water present.</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3>Look for real telemetry.</h3>
+                    <pre>device_code: ESP32-REAL-001
+simulated: false
+temperature_c / humidity_pct: sensor readings
+raw_adc / soil_moisture_pct: soil readings
+flow_pulse_count / flow_rate_lpm: measured pulses
+pump_state: off at boot</pre>
+                    <p>These are expected fields, not live readings. <code>null</code> means a missing
+                        or invalid reading. Zero flow by itself does not verify the flow sensor.
+                        This wiring guide never sends pump commands.</p>
+                    <p>The flashed firmware reads sensors and executes app commands. The earlier
+                        moisture/rain auto-stop was simulator-only; this page does not add that
+                        control policy to the physical ESP32.</p>
+                </div>
+            </section>
+        </main>
+        <footer>
+            <span>SMART IRRIGATION / REAL HARDWARE / WIRING REV. 01</span>
+            <span>Self-contained HTML + SVG · no CDN · printable · match your module labels</span>
+        </footer>
+    </div>
+
+    <script>
+        "use strict";
+
+        const COLORS = {
+            power3: "#efb75b", power5: "#ff7c7e", ground: "#9cabb7",
+            soil: "#6de0a1", dht: "#bc9bff", flow: "#f7d66b", relay: "#65d6e2"
+        };
+        const LAYOUTS = {
+            "30": {
+                left: [
+                    "EN", "VP/36", "VN/39", "34", "35", "32", "33", "25",
+                    "26", "27", "14", "12", "13", "GND", "VIN"
+                ],
+                right: [
+                    "23", "22", "TX/1", "RX/3", "21", "19", "18", "5",
+                    "17", "16", "4", "2", "15", "GND", "3V3"
+                ]
+            },
+            "38": {
+                left: [
+                    "3V3", "EN", "VP/36", "VN/39", "34", "35", "32", "33",
+                    "25", "26", "27", "14", "12", "GND", "13", "SD2/9",
+                    "SD3/10", "CMD/11", "5V"
+                ],
+                right: [
+                    "GND", "23", "22", "TX/1", "RX/3", "21", "GND", "19",
+                    "18", "5", "17", "16", "4", "0", "2", "15", "SD1/8",
+                    "SD0/7", "CLK/6"
+                ]
+            }
+        };
+        // Each segment has exact electrical endpoints; the route is purely a drawing.
+        const WIRES = [
+            {
+                id: "01", group: "power", color: "ground",
+                from: "Laptop USB", to: "ESP32 USB socket",
+                note: "USB data cable powers the ESP32; this is not the pump supply.",
+                route: () => [[775, 778], [775, 745]]
+            },
+            {
+                id: "02", group: "power", color: "power3",
+                from: "ESP32 3V3", to: "3.3 V distribution strip",
+                note: "Join only the 3.3 V rail; keep it separate from the 5 V rail.",
+                route: (p) => [
+                    p["3V3"], [p["3V3"][0] < 700 ? 550 : 960, p["3V3"][1]],
+                    [p["3V3"][0] < 700 ? 550 : 960, 840], [880, 840]
+                ]
+            },
+            {
+                id: "03", group: "power", color: "power5",
+                from: "ESP32 USB-derived 5V/VIN", to: "5 V accessory strip",
+                note: "Only if your board exposes USB 5 V here. No external supply backfeed.",
+                route: (p) => [p.vin, [590, p.vin[1]], [590, 890], [650, 890]]
+            },
+            {
+                id: "04", group: "power", color: "ground",
+                from: "ESP32 GND", to: "Common logic GND strip",
+                note: "Sensor grounds, relay input ground and divider ground join this strip.",
+                route: (p) => [p.gnd, [570, p.gnd[1]], [570, 940], [650, 940]]
+            },
+            {
+                id: "05", group: "soil", color: "power3",
+                from: "3.3 V strip", to: "Soil sensor VCC / +",
+                note: "Use the connector's label, not an assumed left-to-right order.",
+                route: () => [[100, 840], [405, 840], [405, 255], [380, 255]]
+            },
+            {
+                id: "06", group: "soil", color: "ground",
+                from: "GND strip", to: "Soil sensor GND / −",
+                note: "The soil sensor and ESP32 must share a ground reference.",
+                route: () => [[180, 940], [425, 940], [425, 295], [380, 295]]
+            },
+            {
+                id: "07", group: "soil", color: "soil",
+                from: "Soil sensor AOUT / A", to: "ESP32 GPIO32",
+                note: "Analog input, ADC1. Keep the signal lead away from motor wiring.",
+                route: (p) => [[380, 335], [445, 335], [445, p["32"][1]], p["32"]]
+            },
+            {
+                id: "08", group: "dht", color: "power3",
+                from: "3.3 V strip", to: "DHT22 VCC (bare sensor pin 1)",
+                note: "For a 3-pin AM2302 module, follow VCC/+ instead of physical pin numbers.",
+                route: () => [[260, 840], [395, 840], [395, 555], [380, 555]]
+            },
+            {
+                id: "09", group: "dht", color: "ground",
+                from: "GND strip", to: "DHT22 GND (bare sensor pin 4)",
+                note: "Bare DHT22 front view: pin 3 is NC and stays disconnected.",
+                route: () => [[340, 940], [415, 940], [415, 595], [380, 595]]
+            },
+            {
+                id: "10", group: "dht", color: "dht",
+                from: "DHT22 DATA (bare sensor pin 2)", to: "ESP32 GPIO33",
+                note: "The pull-up joins this signal at the marked junction.",
+                route: (p) => [[380, 635], [465, 635], [465, p["33"][1]], p["33"]]
+            },
+            {
+                id: "11", group: "dht", color: "power3",
+                from: "3.3 V strip", to: "4.7 kΩ pull-up, first lead",
+                note: "Fit only if the DHT module lacks a pull-up to its 3.3 V supply.",
+                route: () => [[475, 840], [535, 840], [535, 320], [510, 320], [510, 339]]
+            },
+            {
+                id: "12", group: "dht", color: "dht",
+                from: "4.7 kΩ pull-up, second lead", to: "DHT DATA / GPIO33 junction",
+                note: "Pull-up goes between DATA and 3.3 V, not in series with DATA.",
+                route: (p) => [[510, 384], [510, p["33"][1]]]
+            },
+            {
+                id: "13", group: "flow", color: "power5",
+                from: "5 V strip", to: "YF-S201 red / VCC",
+                note: "This reference assumes a 5 V-powered YF-S201 pulse output.",
+                route: () => [[960, 890], [1080, 890], [1080, 245], [1130, 245]]
+            },
+            {
+                id: "14", group: "flow", color: "ground",
+                from: "GND strip", to: "YF-S201 black / GND",
+                note: "Join the sensor ground to ESP32 ground, not the isolated pump return.",
+                route: () => [[960, 940], [1100, 940], [1100, 285], [1130, 285]]
+            },
+            {
+                id: "15", group: "flow", color: "flow",
+                from: "YF-S201 yellow / signal", to: "R1 10 kΩ, upper lead",
+                note: "Never connect this raw 5 V signal directly to GPIO25.",
+                route: () => [[1130, 325], [1005, 325], [1005, 349]]
+            },
+            {
+                id: "16", group: "flow", color: "flow",
+                from: "R1 10 kΩ, lower lead", to: "Divider junction",
+                note: "This shared junction also connects to GPIO25 and R2.",
+                route: () => [[1005, 390], [1005, 420]]
+            },
+            {
+                id: "17", group: "flow", color: "flow",
+                from: "Divider junction (~3.0 V HIGH)", to: "ESP32 GPIO25",
+                note: "Measure the high level first. GPIO25 counts the falling pulse edges.",
+                route: (p) => [
+                    [1005, 420], [980, 420], [980, 140], [605, 140],
+                    [605, p["25"][1]], p["25"]
+                ]
+            },
+            {
+                id: "18", group: "flow", color: "flow",
+                from: "Divider junction", to: "R2 15 kΩ, upper lead",
+                note: "R1 is above the tap; R2 is between the tap and ground.",
+                route: () => [[1005, 420], [1005, 445]]
+            },
+            {
+                id: "19", group: "flow", color: "ground",
+                from: "R2 15 kΩ, lower lead", to: "GND strip",
+                note: "An open divider ground can put excessive voltage on the ESP32 input.",
+                route: () => [[1005, 486], [1005, 500], [1020, 500], [1020, 940], [900, 940]]
+            },
+            {
+                id: "20", group: "relay", color: "power5",
+                from: "5 V strip", to: "Relay module VCC",
+                note: "This powers the relay electronics/coil, not the pump motor.",
+                route: () => [[960, 890], [1080, 890], [1080, 510], [1130, 510]]
+            },
+            {
+                id: "21", group: "relay", color: "ground",
+                from: "GND strip", to: "Relay module GND",
+                note: "Common logic ground for the VCC/GND/IN module shown.",
+                route: () => [[960, 940], [1100, 940], [1100, 550], [1130, 550]]
+            },
+            {
+                id: "22", group: "relay", color: "relay",
+                from: "ESP32 GPIO27", to: "Relay module IN — conditional",
+                note: "Only for verified 3.3 V-compatible active-LOW input. See relay close-up.",
+                route: (p) => [
+                    p["27"], [580, p["27"][1]], [580, 100],
+                    [1050, 100], [1050, 590], [1130, 590]
+                ]
+            },
+            {
+                id: "23", group: "pump", color: "power5",
+                from: "Separate regulated 5 V supply +", to: "Relay COM",
+                note: "Match the COM marking. Your 3–6 V pump must not use a 12 V supply.",
+                route: () => [
+                    [1330, 850], [1350, 850], [1350, 740],
+                    [1615, 740], [1615, 560], [1570, 560]
+                ]
+            },
+            {
+                id: "24", group: "pump", color: "power5",
+                from: "Relay NO (normally open)", to: "Pump positive +",
+                note: "NO opens when the relay releases. NC remains empty.",
+                route: () => [
+                    [1570, 610], [1595, 610], [1595, 805],
+                    [1400, 805], [1400, 850], [1420, 850]
+                ]
+            },
+            {
+                id: "25", group: "pump", color: "ground",
+                from: "Pump negative −", to: "Pump supply negative −",
+                note: "Return directly to the pump supply. No ESP32 ground connection needed.",
+                route: () => [[1420, 930], [1330, 930]]
+            },
+            {
+                id: "26", group: "pump", color: "power5",
+                from: "Diode band / cathode K", to: "Pump positive +",
+                note: "Silver stripe goes to pump +. Mount the diode close to the motor leads.",
+                route: () => [[1380, 876], [1380, 850], [1420, 850]]
+            },
+            {
+                id: "27", group: "pump", color: "ground",
+                from: "Diode unbanded end / anode A", to: "Pump negative −",
+                note: "This is the motor flyback diode, separate from any relay-coil diode.",
+                route: () => [[1380, 910], [1380, 930]]
+            }
+        ];
+        const STORAGE_KEY = "irrigation.wiring-checklist.v1";
+        let selected_wire = null;
+        let selected_filter = "all";
+        let zoom_level = 1;
+        let checked_wires = new Set();
+        let storage_available = true;
+
+        function read_checklist() {
+            try {
+                const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+                if (Array.isArray(stored)) {
+                    checked_wires = new Set(stored.filter(
+                        (id) => WIRES.some((wire) => wire.id === id)
+                    ));
+                }
+            } catch {
+                storage_available = false;
+            }
+        }
+
+        function update_progress() {
+            document.querySelector("#progress").value = checked_wires.size;
+            document.querySelector("#progress-label").textContent =
+                `${checked_wires.size} / ${WIRES.length} checked`;
+            document.querySelectorAll("#connection-rows tr").forEach((row) => {
+                row.classList.toggle("completed", checked_wires.has(row.dataset.wire));
+            });
+            if (!storage_available) {
+                document.querySelector("#save-note").textContent =
+                    "Browser storage unavailable; checks last only until this page closes.";
+            }
+        }
+
+        function save_checklist() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify([...checked_wires]));
+            } catch {
+                storage_available = false;
+            }
+            update_progress();
+        }
+
+        function render_ledger() {
+            document.querySelector("#connection-rows").innerHTML = WIRES.map((wire) => `
+                <tr data-wire="${wire.id}">
+                    <td><input type="checkbox" data-check="${wire.id}"
+                        aria-label="Mark W${wire.id} checked"
+                        ${checked_wires.has(wire.id) ? "checked" : ""}></td>
+                    <td><button type="button" class="wire-id" data-select="${wire.id}"
+                        style="--wire:${COLORS[wire.color]}">W${wire.id}</button></td>
+                    <td>${wire.from}</td><td>${wire.to}</td><td>${wire.note}</td>
+                </tr>
+            `).join("");
+            update_progress();
+        }
+
+        function render_board() {
+            const layout_id = document.querySelector("#board-layout").value;
+            const layout = LAYOUTS[layout_id];
+            const pins = {};
+            const pin_svg = [];
+            const used_colors = {
+                "3V3": COLORS.power3, "VIN": COLORS.power5, "5V": COLORS.power5,
+                "32": COLORS.soil, "33": COLORS.dht, "25": COLORS.flow,
+                "27": COLORS.relay, "GND": COLORS.ground
+            };
+            ["left", "right"].forEach((side) => {
+                const labels = layout[side];
+                labels.forEach((label, index) => {
+                    const y = 242 + index * (420 / (labels.length - 1));
+                    const x = side === "left" ? 622 : 918;
+                    const color = used_colors[label] || "#83958c";
+                    if (!(label in pins)) pins[label] = [x, y];
+                    if (side === "left" && label === "GND") pins.gnd = [x, y];
+                    if (label === "VIN" || label === "5V") pins.vin = [x, y];
+                    const pad_x = side === "left" ? 641 : 899;
+                    const label_x = side === "left" ? 661 : 879;
+                    const anchor = side === "left" ? "start" : "end";
+                    pin_svg.push(`
+                        <g>
+                            <path d="M${x} ${y}H${side === "left" ? 654 : 886}"
+                                stroke="${color}" stroke-width="3"/>
+                            <rect x="${pad_x - 5}" y="${y - 5}" width="10" height="10"
+                                fill="#c9b97a" stroke="#eadba9"/>
+                            <circle cx="${pad_x}" cy="${y}" r="2.4" fill="#14291f"/>
+                            <text x="${label_x}" y="${y + 4}" text-anchor="${anchor}"
+                                class="pin-label" style="fill:${color}">${label}</text>
+                        </g>
+                    `);
+                });
+            });
+            document.querySelector("#board-pins").innerHTML = pin_svg.join("");
+            document.querySelector("#board-subtitle").textContent =
+                `${layout_id}-pin reference · read the silkscreen`;
+            document.querySelector("#pullup-join").setAttribute("cy", pins["33"][1]);
+            document.querySelector("#wires").innerHTML = WIRES.map((wire) => {
+                const points = wire.route(pins);
+                const d = points.map((p, i) => `${i ? "L" : "M"}${p[0]} ${p[1]}`).join(" ");
+                const end = points[points.length - 1];
+                const start = points[0];
+                const color = COLORS[wire.color];
+                return `
+                    <g class="wire" id="wire-${wire.id}" data-wire="${wire.id}"
+                        data-group="${wire.group}" tabindex="0" role="button"
+                        aria-label="W${wire.id}: ${wire.from} to ${wire.to}" aria-pressed="false">
+                        <title>W${wire.id}: ${wire.from} → ${wire.to}. ${wire.note}</title>
+                        <path d="${d}" class="wire-halo"/>
+                        <path d="${d}" class="wire-line" stroke="${color}"/>
+                        <circle cx="${start[0]}" cy="${start[1]}" r="4" fill="${color}"/>
+                        <circle cx="${end[0]}" cy="${end[1]}" r="4" fill="${color}"/>
+                        <path d="${d}" class="wire-hit"/>
+                        <g class="wire-badge">
+                            <rect x="${end[0] - 42}" y="${end[1] - 27}" width="40" height="20"
+                                rx="4" fill="${color}"/>
+                            <text x="${end[0] - 22}" y="${end[1] - 13}" text-anchor="middle"
+                                style="fill:#10212d;font-size:11px">W${wire.id}</text>
+                        </g>
+                    </g>
+                `;
+            }).join("");
+            // Explicit junction dots where the two accessory branches share a supply trunk.
+            document.querySelector("#wires").insertAdjacentHTML("beforeend", `
+                <circle cx="1080" cy="510" r="5" fill="${COLORS.power5}"/>
+                <circle cx="1100" cy="550" r="5" fill="${COLORS.ground}"/>
+            `);
+            apply_focus();
+        }
+
+        function apply_focus() {
+            document.querySelectorAll("#wires .wire").forEach((element) => {
+                const selected = element.dataset.wire === selected_wire;
+                const matches = selected_wire ? selected
+                    : selected_filter === "all" || element.dataset.group === selected_filter;
+                element.classList.toggle("dim", !matches);
+                element.classList.toggle("selected", selected);
+                element.setAttribute("aria-pressed", String(selected));
+            });
+            document.querySelectorAll("#connection-rows tr").forEach((row) => {
+                row.classList.toggle("selected", row.dataset.wire === selected_wire);
+            });
+            document.querySelectorAll("[data-filter]").forEach((button) => {
+                button.setAttribute("aria-pressed", String(button.dataset.filter === selected_filter));
+            });
+        }
+
+        function select_wire(id) {
+            const wire = WIRES.find((item) => item.id === id);
+            if (!wire) return;
+            selected_wire = id;
+            selected_filter = wire.group;
+            document.querySelector("#inspect-id").textContent = `CONNECTION W${id}`;
+            document.querySelector("#inspect-title").textContent = `${wire.from} → ${wire.to}`;
+            document.querySelector("#inspect-note").textContent = wire.note;
+            document.querySelector("#inspect-link").href = `#${wire.group}-detail`;
+            document.querySelector("#inspect-link").textContent = "See circuit close-up ↓";
+            apply_focus();
+        }
+
+        function set_filter(group) {
+            selected_filter = group;
+            selected_wire = null;
+            document.querySelector("#inspect-id").textContent = "WIRE INSPECTOR";
+            document.querySelector("#inspect-title").textContent = group === "all"
+                ? "All connections visible." : `${group.toUpperCase()} connections highlighted.`;
+            document.querySelector("#inspect-note").textContent =
+                "Click a colored wire or its W-number in the ledger for the exact connection.";
+            document.querySelector("#inspect-link").href =
+                group === "all" ? "#connections" : `#${group}-detail`;
+            document.querySelector("#inspect-link").textContent =
+                group === "all" ? "Connection ledger ↓" : "See circuit close-up ↓";
+            apply_focus();
+        }
+
+        function set_zoom(value) {
+            zoom_level = Math.max(1, Math.min(3, value));
+            const viewport_width = document.querySelector(".drawing-viewport").clientWidth;
+            const base_width = Math.max(1000, viewport_width);
+            document.querySelector("#wiring-map").style.width = `${base_width * zoom_level}px`;
+            document.querySelector("#zoom-value").value =
+                zoom_level === 1 ? "Fit" : `${Math.round(zoom_level * 100)}%`;
+            document.querySelector("#zoom-out").disabled = zoom_level === 1;
+            document.querySelector("#zoom-in").disabled = zoom_level === 3;
+        }
+
+        read_checklist();
+        render_ledger();
+        render_board();
+        set_zoom(1);
+        document.querySelector("#board-layout").addEventListener("change", render_board);
+        document.querySelector("#zoom-in").addEventListener("click", () => set_zoom(zoom_level + .25));
+        document.querySelector("#zoom-out").addEventListener("click", () => set_zoom(zoom_level - .25));
+        document.querySelector("#zoom-fit").addEventListener("click", () => set_zoom(1));
+        window.addEventListener("resize", () => set_zoom(zoom_level));
+        document.querySelector("#print-guide").addEventListener("click", () => window.print());
+        document.querySelector(".filters").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-filter]");
+            if (button) set_filter(button.dataset.filter);
+        });
+        document.querySelector("#wiring-map").addEventListener("click", (event) => {
+            const wire = event.target.closest(".wire");
+            if (wire) select_wire(wire.dataset.wire);
+        });
+        document.querySelector("#wiring-map").addEventListener("keydown", (event) => {
+            const wire = event.target.closest(".wire");
+            if (wire && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                select_wire(wire.dataset.wire);
+            }
+        });
+        document.querySelector("#connection-rows").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-select]");
+            if (button) {
+                select_wire(button.dataset.select);
+                document.querySelector(".sheet").scrollIntoView({block: "start"});
+            }
+        });
+        document.querySelector("#connection-rows").addEventListener("change", (event) => {
+            const id = event.target.dataset.check;
+            if (!id) return;
+            if (event.target.checked) checked_wires.add(id);
+            else checked_wires.delete(id);
+            save_checklist();
+        });
+        document.querySelector("#reset-checks").addEventListener("click", () => {
+            checked_wires.clear();
+            save_checklist();
+            render_ledger();
+        });
+        if (location.protocol === "http:" || location.protocol === "https:") {
+            document.querySelector("#dashboard-link").href = "/#devices";
+        }
+    </script>
+</body>
+</html>

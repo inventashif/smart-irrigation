@@ -80,7 +80,7 @@ void enforcePumpWatchdogs(unsigned long now, bool wifiConnected) {
     setPump(false, true);
     return;
   }
-  if (COMMS_LOSS_TIMEOUT_MS > 0 && (!wifiConnected || commsFault) &&
+  if (COMMS_LOSS_TIMEOUT_MS > 0 &&
       (now - lastBackendOkMs) >= COMMS_LOSS_TIMEOUT_MS) {
     Serial.println("SAFE: Wi-Fi/backend comms timeout — forcing pump OFF");
     setPump(false, true);
@@ -183,10 +183,16 @@ String jsonFloatOrNull(float v, bool valid, int digits = 2) {
 }
 
 String extractJsonString(const String &body, const String &key) {
-  String needle = "\"" + key + "\":\"";
+  String needle = "\"" + key + "\"";
   int i = body.indexOf(needle);
   if (i < 0) return "";
   i += needle.length();
+  i = body.indexOf(':', i);
+  if (i < 0) return "";
+  i++;
+  while (i < body.length() && isspace((unsigned char)body[i])) i++;
+  if (body[i] != '"') return "";
+  i++;
   int j = body.indexOf("\"", i);
   if (j < 0) return "";
   return body.substring(i, j);
@@ -207,6 +213,8 @@ bool sendTelemetry(const SoilReading &soil, const ClimateReading &climate,
   String ts = iso8601Now();
   String payload = "{";
   payload += "\"device_code\":\"" + String(DEVICE_CODE) + "\",";
+  payload += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
+  payload += "\"firmware_version\":\"esp32-real-1.3.0\",";
   payload += "\"recorded_at\":" + (ts.length() ? ("\"" + ts + "\"") : "null") + ",";
   payload += "\"uptime_ms\":" + String(millis()) + ",";
   payload += "\"raw_adc\":" + (soil.valid ? String(soil.rawAdc) : "null") + ",";
@@ -286,12 +294,14 @@ void pollCommand() {
   http.setTimeout(8000);
   int code = http.GET();
   if (code != 200) {
+    Serial.printf("Command poll failed: HTTP %d\n", code);
     http.end();
     return;
   }
   String body = http.getString();
   http.end();
   lastBackendOkMs = millis();
+  commsFault = false;
 
   String command = extractJsonString(body, "command");
   if (command.length() == 0 || command == "none") return;
@@ -328,6 +338,7 @@ void setup() {
   Serial.begin(115200);
   delay(200);
 
+  digitalWrite(RELAY_PUMP_PIN, relayLevelFor(false));
   pinMode(RELAY_PUMP_PIN, OUTPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
   setPump(false, true);  // mandatory safe state at boot
@@ -344,6 +355,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("Connecting to Wi-Fi...");
+  Serial.printf("Device: %s | Backend: %s\n", DEVICE_CODE, BACKEND_BASE_URL);
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
   lastTelemetryMs = millis();
@@ -369,7 +381,7 @@ void loop() {
 
   if (!timeSynced) {
     struct tm t;
-    if (getLocalTime(&t) && (t.tm_year + 1900) >= 2024) timeSynced = true;
+    if (getLocalTime(&t, 10) && (t.tm_year + 1900) >= 2024) timeSynced = true;
   }
 
   if (now - lastCommandPollMs >= COMMAND_POLL_INTERVAL_MS) {
@@ -412,6 +424,9 @@ void loop() {
     }
 
     bool ok = sendTelemetry(soil, climate, flowValid, flowRateLpm, pulseCount);
+    Serial.printf("REAL device=%s IP=%s telemetry=%s soil_adc=%d pump=%s\n",
+                  DEVICE_CODE, WiFi.localIP().toString().c_str(),
+                  ok ? "OK" : "FAILED", soil.rawAdc, pumpOn ? "on" : "off");
     if (ok) {
       telemetryFailStreak = 0;
       commsFault = false;

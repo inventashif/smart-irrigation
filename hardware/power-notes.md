@@ -7,8 +7,8 @@
    - Use a data-capable USB cable for flashing; keep a spare.
 
 2. Pump power domain: separate DC adapter matched to the pump.
-   - Example: 12 V DC adapter for a 12 V pump; check pump label for voltage
-     and maximum current.
+    - The purchased pump is 3–6 V DC: use a regulated 5 V supply rated for its
+      startup/stall current. Never use the old 12 V example with this pump.
    - The pump loop is switched by relay COM/NO contacts.
    - Do not power the pump from the ESP32 USB port.
 
@@ -31,3 +31,6 @@
 - No mains-voltage pump or relay wiring in the student MVP.
 - No shared “one weak USB charger” for both ESP32 and pump.
 - No 5 V signals directly into ESP32 GPIO pins.
+- A 5 V relay coil rating does not guarantee a 3.3 V-compatible IN pin.
+  Verify the input circuit or use the interface shown in the visual guide.
+- Do not backfeed external 5 V into VIN while the board is connected by USB.

@@ -163,6 +163,13 @@ hardware simulator against it. Same dashboard at `http://127.0.0.1:8000/`.
 
 ## Quick start — real hardware
 
+Open the **[visual wiring guide](frontend/static/wiring.html)** in any browser,
+or visit `http://127.0.0.1:8000/static/wiring.html` while the app is running.
+It includes 30-/38-pin ESP32 references, all connection segments, enlarged
+DHT22/divider/relay/diode diagrams, and a printable wiring checklist.
+The guide matches the purchased **3–6 V pump** (separate regulated 5 V supply);
+follow the printed GPIO and terminal names on your particular modules.
+
 1. Wire the prototype using `hardware/wiring-diagram.md` and
    `firmware/pin_map.md`, using the specified parts in `hardware/bom.md`.
 2. Edit `firmware/config.h` — only three things are yours to fill in:

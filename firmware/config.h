@@ -5,10 +5,14 @@
 // credentials to a shared repository.
 
 // --- Network / backend ---
+#if __has_include("config.local.h")
+#include "config.local.h"
+#else
 #define WIFI_SSID "YOUR_WIFI_SSID"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
 #define BACKEND_BASE_URL "http://192.168.1.10:8000"
-#define DEVICE_CODE "ESP32-DEMO-001"
+#define DEVICE_CODE "ESP32-REAL-001"
+#endif
 
 // --- Timing & pump safety watchdogs ---
 #define TELEMETRY_INTERVAL_MS 15000UL
