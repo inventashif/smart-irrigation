@@ -1,7 +1,13 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <DHT.h>
+#include <cJSON.h>
 #include <time.h>
+#include <driver/gpio.h>
 #include "config.h"
+#include "sensor_readings.h"
+#include "moisture_control.h"
 
 /*
  * Smart Irrigation ESP32 firmware (MVP)
@@ -17,33 +23,41 @@
  *  - STOP / EMERGENCY STOP always win over START
  *  - EMERGENCY STOP latches a safety lock; START is rejected until cleared
  *  - sensor faults are reported as null/missing, never fabricated
- *  - no agronomic irrigation thresholds live in firmware
+ *  - local moisture hysteresis; manual STOP and safety faults pause auto-start
  */
 
-struct SoilReading {
-  bool valid = false;
-  int rawAdc = 0;
-  float moisturePct = 0.0f;
-};
+static_assert(SOIL_SAMPLES > 0, "SOIL_SAMPLES must be positive");
+static_assert(AUTO_START_MOISTURE_PCT >= 0 &&
+              AUTO_START_MOISTURE_PCT < AUTO_STOP_MOISTURE_PCT &&
+              AUTO_STOP_MOISTURE_PCT <= 100, "Invalid irrigation thresholds");
+static_assert(!FLOW_SENSOR_PRESENT || FLOW_PULSES_PER_LITRE > 0, "Invalid flow calibration");
+static_assert(SENSOR_SAMPLE_INTERVAL_MS >= 2000 || !DHT22_PRESENT || SIMULATE_SENSORS,
+              "Allow at least 2000 ms between DHT22 reads");
 
-struct ClimateReading {
-  bool valid = false;
-  float temperatureC = 0.0f;
-  float humidityPct = 0.0f;
-};
+DHT climateSensor(DHT_DATA_PIN, DHT22);
 
+portMUX_TYPE flowMux = portMUX_INITIALIZER_UNLOCKED;
 volatile unsigned long flowPulseCount = 0;
+volatile unsigned long lastFlowEdgeMs = 0;
+unsigned long pulseCountAtPumpStart = 0;
 unsigned long lastFlowPulseSnapshot = 0;
-unsigned long lastFlowPulseMs = 0;
+unsigned long lastFlowSampleMs = 0;
 float cumulativeWaterLitres = 0.0f;
 bool flowFault = false;
-bool flowFaultLogged = false;
+SensorSample latestSample;
+bool haveSample = false;
+unsigned long lastSensorMs = 0;
 
 bool pumpOn = false;
 bool safetyLock = false;
 bool commsFault = false;
 bool timeSynced = false;
-String lastCommandId = "";
+bool wifiWasConnected = false;
+bool firstTelemetrySent = false;
+bool autoIrrigationPaused = false;
+String lastCommandIdJson = "";
+String lastAckPayload = "";
+unsigned long bootMs = 0;
 unsigned long lastStateChangeMs = 0;
 unsigned long pumpStartedMs = 0;
 unsigned long lastBackendOkMs = 0;
@@ -53,7 +67,17 @@ unsigned long lastWifiRetryMs = 0;
 int telemetryFailStreak = 0;
 
 void IRAM_ATTR onFlowPulse() {
+  portENTER_CRITICAL_ISR(&flowMux);
   flowPulseCount++;
+  lastFlowEdgeMs = millis();
+  portEXIT_CRITICAL_ISR(&flowMux);
+}
+
+FlowSnapshot readFlowSnapshot() {
+  portENTER_CRITICAL(&flowMux);
+  FlowSnapshot snapshot{flowPulseCount, lastFlowEdgeMs, millis()};
+  portEXIT_CRITICAL(&flowMux);
+  return snapshot;
 }
 
 int relayLevelFor(bool on) {
@@ -61,84 +85,70 @@ int relayLevelFor(bool on) {
   return on ? HIGH : LOW;
 }
 
-void setPump(bool on, bool force = false) {
+void setPump(bool on, bool force) {
   unsigned long now = millis();
   if (!force && on == pumpOn) return;
-  if (!force && (now - lastStateChangeMs) < MIN_PUMP_STATE_CHANGE_MS) return;  // chatter guard
-  if (on && safetyLock) return;  // emergency stop latch wins
+  if (!force && (now - lastStateChangeMs) < MIN_PUMP_STATE_CHANGE_MS) return;
+  if (on && safetyLock) return;
 
   digitalWrite(RELAY_PUMP_PIN, relayLevelFor(on));
   digitalWrite(STATUS_LED_PIN, on ? HIGH : LOW);
+  Serial.printf("PUMP: %s  GPIO%d=%s readback=%d\n", on ? "ON" : "OFF", RELAY_PUMP_PIN,
+                relayLevelFor(on) == HIGH ? "HIGH" : "LOW", digitalRead(RELAY_PUMP_PIN));
   pumpOn = on;
   lastStateChangeMs = now;
+  flowFault = false;
   if (on) {
     pumpStartedMs = now;
-    lastFlowPulseMs = now;  // give the flow sensor a fresh window on each start
-    flowFault = false;
+    pulseCountAtPumpStart = readFlowSnapshot().count;
   }
 }
 
-void enforcePumpWatchdogs(unsigned long now, bool wifiConnected) {
+void enforcePumpWatchdogs(bool wifiConnected) {
+  unsigned long now = millis();
+  bool timedOut = COMMS_LOSS_TIMEOUT_MS > 0 && (now - lastBackendOkMs) >= COMMS_LOSS_TIMEOUT_MS;
+  if (timedOut) commsFault = true;
+
   if (!pumpOn) return;
   if (MAX_PUMP_RUN_MS > 0 && (now - pumpStartedMs) >= MAX_PUMP_RUN_MS) {
+    autoIrrigationPaused = true;
     Serial.println("SAFE: max pump runtime reached — forcing pump OFF");
     setPump(false, true);
     return;
   }
-  if (COMMS_LOSS_TIMEOUT_MS > 0 &&
-      (now - lastBackendOkMs) >= COMMS_LOSS_TIMEOUT_MS) {
+  if (timedOut) {
+    autoIrrigationPaused = true;
     Serial.println("SAFE: Wi-Fi/backend comms timeout — forcing pump OFF");
     setPump(false, true);
   }
 }
 
-bool waitForLevel(int pin, int level, unsigned long timeoutUs) {
-  unsigned long start = micros();
-  while (digitalRead(pin) != level) {
-    if ((micros() - start) > timeoutUs) return false;
+void enforceMoistureControl() {
+  if (!AUTO_IRRIGATION_ENABLED) return;
+  unsigned long now = millis();
+  bool fresh = haveSample && now - lastSensorMs <= SENSOR_SAMPLE_INTERVAL_MS * 2;
+  bool backendHealthy = WiFi.status() == WL_CONNECTED && !commsFault &&
+                        now - lastBackendOkMs < COMMS_LOSS_TIMEOUT_MS;
+  bool allowStart = RELAY_INTERFACE_VERIFIED && !autoIrrigationPaused &&
+                    !safetyLock && backendHealthy && !flowFault;
+  MoistureAction action = moistureAction(
+      fresh && latestSample.soil.valid, latestSample.soil.moisturePct,
+      pumpOn, allowStart, AUTO_START_MOISTURE_PCT, AUTO_STOP_MOISTURE_PCT);
+  if (action == MoistureAction::Stop || (pumpOn && flowFault)) {
+    if (flowFault) autoIrrigationPaused = true;
+    Serial.println("AUTO: stop (wet soil, invalid/stale sensor, or no flow)");
+    setPump(false, true);
+  } else if (action == MoistureAction::Start) {
+    Serial.println("AUTO: start (dry soil)");
+    setPump(true, false);
   }
-  return true;
 }
 
 bool readDHT22(float &temperatureC, float &humidityPct) {
   if (!DHT22_PRESENT) return false;
-  uint8_t data[5] = {0, 0, 0, 0, 0};
-
-  noInterrupts();
-  pinMode(DHT_DATA_PIN, OUTPUT);
-  digitalWrite(DHT_DATA_PIN, LOW);
-  // Keep the 2 ms start pulse outside the critical section; delay() needs
-  // interrupts on some cores. Only the sensor response timing is critical.
-  interrupts();
-  delay(2);
-  noInterrupts();
-  digitalWrite(DHT_DATA_PIN, HIGH);
-  delayMicroseconds(30);
-  pinMode(DHT_DATA_PIN, INPUT_PULLUP);
-
-  bool ok = true;
-  ok &= waitForLevel(DHT_DATA_PIN, LOW, 120);   // sensor response, ~80 us low
-  ok &= waitForLevel(DHT_DATA_PIN, HIGH, 120);  // ~80 us high
-  ok &= waitForLevel(DHT_DATA_PIN, LOW, 120);   // first data bit low
-
-  for (int i = 0; i < 40 && ok; i++) {
-    ok &= waitForLevel(DHT_DATA_PIN, HIGH, 120);
-    unsigned long start = micros();
-    ok &= waitForLevel(DHT_DATA_PIN, LOW, 120);
-    unsigned long highUs = micros() - start;
-    if (highUs > 40) data[i / 8] |= (1 << (7 - (i % 8)));
-  }
-  pinMode(DHT_DATA_PIN, INPUT_PULLUP);
-  interrupts();
-
-  if (!ok) return false;
-  if ((((data[0] + data[1] + data[2] + data[3]) & 0xFF) != data[4])) return false;
-
-  humidityPct = (float)((data[0] << 8) | data[1]) / 10.0f;
-  int16_t rawT = (int16_t)(((data[2] & 0x7F) << 8) | data[3]);
-  temperatureC = rawT / 10.0f;
-  if (data[2] & 0x80) temperatureC = -temperatureC;
-
+  humidityPct = climateSensor.readHumidity();
+  temperatureC = climateSensor.readTemperature();
+  if (isnan(humidityPct) || isnan(temperatureC)) return false;
   if (humidityPct < 0 || humidityPct > 100) return false;
   if (temperatureC < -40 || temperatureC > 80) return false;
   return true;
@@ -146,15 +156,18 @@ bool readDHT22(float &temperatureC, float &humidityPct) {
 
 SoilReading readSoil() {
   SoilReading r;
+  const int samples = SOIL_SAMPLES > 0 ? SOIL_SAMPLES : 1;
+  (void)analogRead(SOIL_ADC_PIN);  // discard first ADC mux settling sample
+  delay(2);
   long sum = 0;
-  for (int i = 0; i < SOIL_SAMPLES; i++) {
+  for (int i = 0; i < samples; i++) {
     sum += analogRead(SOIL_ADC_PIN);
     delay(5);
   }
-  r.rawAdc = (int)(sum / SOIL_SAMPLES);
+  r.rawAdc = (int)(sum / samples);
 
   if (r.rawAdc <= SOIL_ADC_FAULT_LOW || r.rawAdc >= SOIL_ADC_FAULT_HIGH) {
-    r.valid = false;  // disconnected/faulted sensor: report missing, never fake
+    r.valid = false;
     return r;
   }
 
@@ -175,62 +188,89 @@ SoilReading readSoil() {
 String iso8601Now() {
   if (!timeSynced) return "";
   struct tm t;
-  if (!getLocalTime(&t)) return "";
+  if (!getLocalTime(&t, 10)) return "";
   if ((t.tm_year + 1900) < 2024) return "";
   char buf[32];
   strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &t);
   return String(buf);
 }
 
-String jsonFloatOrNull(float v, bool valid, int digits = 2) {
-  if (!valid) return "null";
+String jsonFloatOrNull(float v, bool valid, int digits) {
+  if (!valid || !isfinite(v)) return "null";
   return String(v, digits);
 }
 
-String extractJsonString(const String &body, const String &key) {
-  String needle = "\"" + key + "\"";
-  int i = body.indexOf(needle);
-  if (i < 0) return "";
-  i += needle.length();
-  i = body.indexOf(':', i);
-  if (i < 0) return "";
-  i++;
-  while (i < body.length() && isspace((unsigned char)body[i])) i++;
-  if (body[i] != '"') return "";
-  i++;
-  int j = body.indexOf("\"", i);
-  if (j < 0) return "";
-  return body.substring(i, j);
+String encodeCommandId(const cJSON *id) {
+  if (cJSON_IsString(id) && id->valuestring[0] != '\0') {
+    char *quoted = cJSON_PrintUnformatted(id);
+    if (quoted == nullptr) return "";
+    String result(quoted);
+    cJSON_free(quoted);
+    return result;
+  }
+  if (cJSON_IsNumber(id)) {
+    double n = id->valuedouble;
+    if (n >= 0 && n <= 9007199254740991.0 && floor(n) == n) {
+      char buf[24];
+      snprintf(buf, sizeof(buf), "%.0f", n == 0 ? 0.0 : n);
+      return String(buf);
+    }
+  }
+  return "";
+}
+
+bool beginRequest(HTTPClient &http, const String &url) {
+  if (!http.begin(url)) {
+    Serial.println("HTTP client could not open the configured backend URL");
+    return false;
+  }
+  http.setConnectTimeout(BACKEND_IO_TIMEOUT_MS);
+  http.setTimeout(BACKEND_IO_TIMEOUT_MS);
+  return true;
 }
 
 bool postJson(const String &url, const String &payload) {
   HTTPClient http;
-  http.begin(url);
+  if (!beginRequest(http, url)) return false;
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(8000);
   int code = http.POST(payload);
+  if (code < 200 || code >= 300) {
+    String detail = code > 0 ? http.getString().substring(0, 256) : http.errorToString(code);
+    Serial.printf("POST failed: %s HTTP %d %s\n", url.c_str(), code, detail.c_str());
+  }
   http.end();
   return code >= 200 && code < 300;
 }
 
-bool sendTelemetry(const SoilReading &soil, const ClimateReading &climate,
-                   bool flowValid, float flowRateLpm, unsigned long pulseCount) {
-  String ts = iso8601Now();
+bool sendTelemetry(const SensorSample &sample) {
+  const SoilReading &soil = sample.soil;
+  const ClimateReading &climate = sample.climate;
+  const String &ts = sample.recordedAt;
+
   String payload = "{";
   payload += "\"device_code\":\"" + String(DEVICE_CODE) + "\",";
   payload += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
-  payload += "\"firmware_version\":\"esp32-real-1.4.0\",";
+  payload += "\"firmware_version\":\"esp32-real-1.8.0\",";
   payload += "\"recorded_at\":" + (ts.length() ? ("\"" + ts + "\"") : "null") + ",";
   payload += "\"uptime_ms\":" + String(millis()) + ",";
   payload += "\"raw_adc\":" + (soil.valid ? String(soil.rawAdc) : "null") + ",";
+  payload += "\"soil_adc_diagnostic\":" + String(soil.rawAdc) + ",";
+  payload += "\"soil_sensor_valid\":" + String(soil.valid ? "true" : "false") + ",";
+  payload += "\"climate_sensor_valid\":" + String(climate.valid ? "true" : "false") + ",";
+  payload += "\"dht_idle_level\":" + (sample.dhtIdleLevel < 0 ? String("null") : String(sample.dhtIdleLevel)) + ",";
   payload += "\"soil_moisture_pct\":" + jsonFloatOrNull(soil.moisturePct, soil.valid, 1) + ",";
   payload += "\"temperature_c\":" + jsonFloatOrNull(climate.temperatureC, climate.valid, 1) + ",";
   payload += "\"humidity_pct\":" + jsonFloatOrNull(climate.humidityPct, climate.valid, 1) + ",";
-  payload += "\"flow_rate_lpm\":" + jsonFloatOrNull(flowRateLpm, flowValid, 3) + ",";
-  payload += "\"flow_pulse_count\":" + (flowValid ? String(pulseCount) : "null") + ",";
-  payload += "\"cumulative_water_litres\":" + jsonFloatOrNull(cumulativeWaterLitres, flowValid, 3) + ",";
+  payload += "\"flow_rate_lpm\":" + jsonFloatOrNull(sample.flowRateLpm, sample.flowValid, 3) + ",";
+  payload += "\"flow_pulse_count\":" + (sample.flowValid ? String(sample.pulseCount) : "null") + ",";
+  payload += "\"cumulative_water_litres\":" + jsonFloatOrNull(cumulativeWaterLitres, sample.flowValid, 3) + ",";
   payload += "\"flow_fault\":" + String(flowFault ? "true" : "false") + ",";
+  payload += "\"relay_active_low\":" + String(RELAY_ACTIVE_LOW ? "true" : "false") + ",";
+  payload += "\"relay_gpio_level\":" + String(digitalRead(RELAY_PUMP_PIN)) + ",";
   payload += "\"pump_state\":\"" + String(pumpOn ? "on" : "off") + "\",";
+  payload += "\"auto_irrigation_enabled\":" + String(AUTO_IRRIGATION_ENABLED ? "true" : "false") + ",";
+  payload += "\"auto_irrigation_paused\":" + String(autoIrrigationPaused ? "true" : "false") + ",";
+  payload += "\"relay_interface_verified\":" + String(RELAY_INTERFACE_VERIFIED ? "true" : "false") + ",";
   payload += "\"safety_lock\":" + String(safetyLock ? "true" : "false") + ",";
   payload += "\"comms_fault\":" + String(commsFault ? "true" : "false") + ",";
   payload += "\"simulated\":" + String(SIMULATE_SENSORS ? "true" : "false");
@@ -240,21 +280,32 @@ bool sendTelemetry(const SoilReading &soil, const ClimateReading &climate,
   return postJson(url, payload);
 }
 
-bool sendAck(const String &commandId, bool accepted, const String &reason) {
+String makeAck(const String &commandIdJson, bool accepted, const String &reason) {
   String payload = "{";
   payload += "\"device_code\":\"" + String(DEVICE_CODE) + "\",";
-  payload += "\"command_id\":\"" + commandId + "\",";
+  payload += "\"command_id\":" + commandIdJson + ",";
   payload += "\"accepted\":" + String(accepted ? "true" : "false") + ",";
   payload += "\"pump_state\":\"" + String(pumpOn ? "on" : "off") + "\",";
   payload += "\"reason\":\"" + reason + "\"";
   payload += "}";
-  String url = String(BACKEND_BASE_URL) + "/api/devices/" + DEVICE_CODE + "/ack";
-  return postJson(url, payload);
+  return payload;
 }
 
-void executeCommand(const String &commandId, const String &command) {
-  if (commandId.length() == 0 || commandId == lastCommandId) return;  // idempotent
-  lastCommandId = commandId;
+void sendLastAck() {
+  String url = String(BACKEND_BASE_URL) + "/api/devices/" + DEVICE_CODE + "/ack";
+  if (!postJson(url, lastAckPayload))
+    Serial.println("ACK failed; a redelivery will retry the original result");
+}
+
+void executeCommand(const String &commandIdJson, const String &command) {
+  if (commandIdJson.length() == 0) {
+    Serial.println("Command ignored: missing or invalid command_id");
+    return;
+  }
+  if (commandIdJson == lastCommandIdJson) {
+    sendLastAck();
+    return;
+  }
 
   bool accepted = true;
   String reason = "ok";
@@ -263,16 +314,31 @@ void executeCommand(const String &commandId, const String &command) {
     if (safetyLock) {
       accepted = false;
       reason = "safety_lock_active";
+    } else if (AUTO_IRRIGATION_ENABLED && !RELAY_INTERFACE_VERIFIED) {
+      accepted = false;
+      reason = "relay_interface_not_verified";
+    } else if (AUTO_IRRIGATION_ENABLED &&
+               (!haveSample || !latestSample.soil.valid ||
+                !isfinite(latestSample.soil.moisturePct) ||
+                millis() - lastSensorMs > SENSOR_SAMPLE_INTERVAL_MS * 2)) {
+      accepted = false;
+      reason = "soil_sensor_invalid_or_stale";
+    } else if (AUTO_IRRIGATION_ENABLED &&
+               latestSample.soil.moisturePct >= AUTO_STOP_MOISTURE_PCT) {
+      accepted = false;
+      reason = "soil_already_wet";
     } else {
-      setPump(true);
+      setPump(true, false);
       if (!pumpOn) {
         accepted = false;
-        reason = "pump_did_not_engage";
+        reason = "minimum_state_change_interval";
       }
     }
   } else if (command == "stop") {
-    setPump(false, true);  // stop path bypasses the chatter guard
+    autoIrrigationPaused = true;
+    setPump(false, true);
   } else if (command == "emergency_stop") {
+    autoIrrigationPaused = true;
     safetyLock = true;
     setPump(false, true);
     reason = "emergency_stop_latched";
@@ -282,189 +348,235 @@ void executeCommand(const String &commandId, const String &command) {
       reason = "pump_must_be_off_before_clearing_safety";
     } else {
       safetyLock = false;
+      autoIrrigationPaused = false;  // explicit operator re-arm, still hardware-gated
     }
   } else {
     accepted = false;
     reason = "unknown_command";
   }
 
-  if (!sendAck(commandId, accepted, reason)) {
-    Serial.println("WARN: command executed but ACK failed: " + commandId);
-  }
+  lastCommandIdJson = commandIdJson;
+  lastAckPayload = makeAck(commandIdJson, accepted, reason);
+  Serial.printf("COMMAND: %s accepted=%d reason=%s\n", command.c_str(), accepted, reason.c_str());
+  sendLastAck();
 }
 
 void pollCommand() {
   String url = String(BACKEND_BASE_URL) + "/api/devices/" + DEVICE_CODE + "/command";
   HTTPClient http;
-  http.begin(url);
-  http.setTimeout(8000);
+  if (!beginRequest(http, url)) return;
   int code = http.GET();
+  if (code == 204) {
+    http.end();
+    lastBackendOkMs = millis();
+    commsFault = false;
+    return;
+  }
   if (code != 200) {
-    Serial.printf("Command poll failed: HTTP %d\n", code);
+    String detail = code > 0 ? http.getString().substring(0, 256) : http.errorToString(code);
+    Serial.printf("Command poll failed: HTTP %d %s\n", code, detail.c_str());
     http.end();
     return;
   }
   String body = http.getString();
   http.end();
+  cJSON *doc = cJSON_ParseWithOpts(body.c_str(), nullptr, true);
+  if (!cJSON_IsObject(doc)) {
+    cJSON_Delete(doc);
+    Serial.println("Command poll returned invalid JSON");
+    return;
+  }
+  const char *text = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(doc, "command"));
+  String command(text == nullptr ? "" : text);
+  String commandIdJson = encodeCommandId(cJSON_GetObjectItemCaseSensitive(doc, "command_id"));
+  cJSON_Delete(doc);
+
   lastBackendOkMs = millis();
   commsFault = false;
-
-  String command = extractJsonString(body, "command");
-  if (command.length() == 0 || command == "none") return;
-  String commandId = extractJsonString(body, "command_id");
-  executeCommand(commandId, command);
+  if (command.length() && command != "none") executeCommand(commandIdJson, command);
 }
 
-void simulateSensors(SoilReading &soil, ClimateReading &climate,
-                     bool &flowValid, float &flowRateLpm, unsigned long &pulseCount,
-                     unsigned long intervalMs) {
+void simulateSensors(SensorSample &s, unsigned long intervalMs) {
   static float phase = 0.0f;
+  static float fractionalPulse = 0.0f;
+  static unsigned long totalPulses = 0;
   phase += 0.05f;
-  flowFault = false;  // simulated pulses are always present while pumping
-  soil.valid = true;
-  soil.rawAdc = (int)(2100 + 250 * sin(phase));
-  soil.moisturePct = 45.0f + 5.0f * sin(phase);
-  climate.valid = true;
-  climate.temperatureC = 27.0f + 0.4f * sin(phase * 0.7f);
-  climate.humidityPct = 62.0f + 2.0f * cos(phase * 0.5f);
-  flowValid = FLOW_SENSOR_PRESENT;
+  s.soil.valid = true;
+  s.soil.rawAdc = (int)(2100 + 250 * sin(phase));
+  s.soil.moisturePct = 45.0f + 5.0f * sin(phase);
+  s.climate.valid = true;
+  s.climate.temperatureC = 27.0f + 0.4f * sin(phase * 0.7f);
+  s.climate.humidityPct = 62.0f + 2.0f * cos(phase * 0.5f);
   if (FLOW_SENSOR_PRESENT) {
-    // Simulate ~2.5 L/min while pumping, 0 otherwise.
-    float litres = pumpOn ? (2.5f * intervalMs / 60000.0f) : 0.0f;
-    unsigned long pulses = (unsigned long)(litres * FLOW_PULSES_PER_LITRE);
-    noInterrupts();
-    flowPulseCount += pulses;
-    pulseCount = flowPulseCount;
-    interrupts();
-    flowRateLpm = pumpOn ? 2.5f : 0.0f;
+    s.flowValid = true;
+    s.flowRateLpm = pumpOn ? 2.5f : 0.0f;
+    float litres = s.flowRateLpm * intervalMs / 60000.0f;
+    float pulses = litres * FLOW_PULSES_PER_LITRE + fractionalPulse;
+    s.intervalPulses = (unsigned long)pulses;
+    fractionalPulse = pulses - s.intervalPulses;
+    totalPulses += s.intervalPulses;
+    s.pulseCount = totalPulses;
     cumulativeWaterLitres += litres;
   }
 }
 
+void readFlow(SensorSample &s) {
+  FlowSnapshot ticks = readFlowSnapshot();
+  unsigned long elapsed = ticks.sampledMs - lastFlowSampleMs;
+  if (elapsed == 0) return;
+  s.flowValid = true;
+  s.pulseCount = ticks.count;
+  s.intervalPulses = ticks.count - lastFlowPulseSnapshot;
+  float litres = static_cast<float>(s.intervalPulses) / FLOW_PULSES_PER_LITRE;
+  s.flowRateLpm = litres * 60000.0f / elapsed;
+  cumulativeWaterLitres += litres;
+  lastFlowPulseSnapshot = ticks.count;
+  lastFlowSampleMs = ticks.sampledMs;
+
+  unsigned long referenceMs = ticks.count == pulseCountAtPumpStart ? pumpStartedMs : ticks.lastEdgeMs;
+  bool noFlow = pumpOn && (ticks.sampledMs - referenceMs >= FLOW_NO_PULSE_TIMEOUT_MS);
+  if (noFlow && !flowFault) Serial.println("FLOW: pump commanded ON, no new pulses detected");
+  flowFault = noFlow;
+}
+
+void sampleSensors(unsigned long intervalMs) {
+  SensorSample sample;
+  if (SIMULATE_SENSORS) {
+    simulateSensors(sample, intervalMs);
+  } else {
+    sample.soil = readSoil();
+    if (DHT22_PRESENT) {
+      sample.climate.valid = readDHT22(sample.climate.temperatureC, sample.climate.humidityPct);
+      sample.dhtIdleLevel = digitalRead(DHT_DATA_PIN);
+    }
+    if (FLOW_SENSOR_PRESENT) readFlow(sample);
+  }
+  sample.recordedAt = iso8601Now();
+  latestSample = sample;
+  haveSample = true;
+}
+
+void printSample(const SensorSample &s, bool wifiConnected) {
+  String soil = jsonFloatOrNull(s.soil.moisturePct, s.soil.valid, 1);
+  String temp = jsonFloatOrNull(s.climate.temperatureC, s.climate.valid, 1);
+  String humidity = jsonFloatOrNull(s.climate.humidityPct, s.climate.valid, 1);
+  String rate = jsonFloatOrNull(s.flowRateLpm, s.flowValid, 3);
+  String idle = s.dhtIdleLevel < 0 ? String("null") : String(s.dhtIdleLevel);
+  String pulses = s.flowValid ? String(s.pulseCount) : String("null");
+  String delta = s.flowValid ? String(s.intervalPulses) : String("null");
+  Serial.printf("SENSORS source=%s wifi=%s pump=%s relay_target=%s relay_gpio=%d "
+                "soil_adc=%d soil_valid=%d soil_pct=%s climate_valid=%d temp_c=%s "
+                "humidity_pct=%s dht_idle=%s flow_pulses=%s flow_delta=%s flow_lpm=%s flow_fault=%d\n",
+                SIMULATE_SENSORS ? "simulated" : "real", wifiConnected ? "up" : "down",
+                pumpOn ? "on" : "off", relayLevelFor(pumpOn) == HIGH ? "HIGH" : "LOW",
+                digitalRead(RELAY_PUMP_PIN), s.soil.rawAdc, s.soil.valid, soil.c_str(),
+                s.climate.valid, temp.c_str(), humidity.c_str(), idle.c_str(),
+                pulses.c_str(), delta.c_str(), rate.c_str(), flowFault);
+}
+
 void setup() {
-  Serial.begin(115200);
-  delay(200);
-
-  digitalWrite(RELAY_PUMP_PIN, relayLevelFor(false));
+  gpio_set_level(static_cast<gpio_num_t>(RELAY_PUMP_PIN), relayLevelFor(false));
   pinMode(RELAY_PUMP_PIN, OUTPUT);
+  digitalWrite(RELAY_PUMP_PIN, relayLevelFor(false));
   pinMode(STATUS_LED_PIN, OUTPUT);
-  setPump(false, true);  // mandatory safe state at boot
+  digitalWrite(STATUS_LED_PIN, LOW);
 
-  analogSetAttenuation(ADC_11db);
-  pinMode(SOIL_ADC_PIN, INPUT);
-  pinMode(DHT_DATA_PIN, INPUT_PULLUP);
+  Serial.begin(115200);
+  Serial.printf("\nRelay driver: %s, OFF=%s\n", RELAY_ACTIVE_LOW ? "active-low" : "active-high",
+                relayLevelFor(false) == HIGH ? "HIGH" : "LOW");
+  setPump(false, true);
+  Serial.printf("Sensor pins: soil=%d DHT22=%d (enabled=%d) flow=%d (enabled=%d) simulated=%d\n",
+                SOIL_ADC_PIN, DHT_DATA_PIN, DHT22_PRESENT, FLOW_PULSE_PIN,
+                FLOW_SENSOR_PRESENT, SIMULATE_SENSORS);
 
-  if (FLOW_SENSOR_PRESENT) {
-    pinMode(FLOW_PULSE_PIN, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(FLOW_PULSE_PIN), onFlowPulse, FALLING);
+  if (!SIMULATE_SENSORS) {
+    analogReadResolution(12);
+    analogSetAttenuation(ADC_11db);
+    if (DHT22_PRESENT) climateSensor.begin();
+    if (FLOW_SENSOR_PRESENT) {
+      pinMode(FLOW_PULSE_PIN, INPUT_PULLUP);
+      lastFlowSampleMs = millis();
+      attachInterrupt(digitalPinToInterrupt(FLOW_PULSE_PIN), onFlowPulse, FALLING);
+    }
   }
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.println("Connecting to Wi-Fi...");
-  Serial.printf("Device: %s | Backend: %s\n", DEVICE_CODE, BACKEND_BASE_URL);
-  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  lastSensorMs = millis();
+  lastTelemetryMs = lastSensorMs;
+  lastCommandPollMs = lastSensorMs;
+  lastBackendOkMs = lastSensorMs;
+  lastWifiRetryMs = lastSensorMs;
 
-  lastTelemetryMs = millis();
-  lastCommandPollMs = millis();
-  lastBackendOkMs = millis();
+  if (WIFI_SSID[0] != '\0') {
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.setSleep(false);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    Serial.println("Connecting to Wi-Fi; local sensing is enabled");
+  } else {
+    Serial.println("No Wi-Fi settings. Local sensor diagnostics are enabled");
+  }
 }
 
 void loop() {
+  enforcePumpWatchdogs(WiFi.status() == WL_CONNECTED);
   unsigned long now = millis();
-  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
-  enforcePumpWatchdogs(now, wifiConnected);
+  bool connected = WiFi.status() == WL_CONNECTED;
 
-  if (!wifiConnected) {
-    if (now - lastWifiRetryMs > WIFI_RETRY_INTERVAL_MS) {
-      lastWifiRetryMs = now;
-      Serial.println("Wi-Fi disconnected, retrying...");
-      WiFi.disconnect();
-      WiFi.reconnect();
-    }
-    delay(200);
-    return;
-  }
-
-  if (!timeSynced) {
+  if (connected && !timeSynced) {
     struct tm t;
-    if (getLocalTime(&t, 10) && (t.tm_year + 1900) >= 2024) timeSynced = true;
+    timeSynced = getLocalTime(&t, 0) && (t.tm_year + 1900 >= 2024);
+  }
+  if (now - lastSensorMs >= SENSOR_SAMPLE_INTERVAL_MS) {
+    unsigned long intervalMs = now - lastSensorMs;
+    lastSensorMs = now;
+    sampleSensors(intervalMs);
+    enforceMoistureControl();
+    printSample(latestSample, connected);
   }
 
-  if (now - lastCommandPollMs >= COMMAND_POLL_INTERVAL_MS) {
-    lastCommandPollMs = now;
-    pollCommand();
-  }
-
-  if (now - lastTelemetryMs >= TELEMETRY_INTERVAL_MS) {
-    unsigned long intervalMs = now - lastTelemetryMs;
-    lastTelemetryMs = now;
-
-    SoilReading soil;
-    ClimateReading climate;
-    bool flowValid = false;
-    float flowRateLpm = 0.0f;
-    unsigned long pulseCount = 0;
-
-    if (SIMULATE_SENSORS) {
-      simulateSensors(soil, climate, flowValid, flowRateLpm, pulseCount, intervalMs);
-    } else {
-      soil = readSoil();
-      float t, h;
-      climate.valid = readDHT22(t, h);
-      if (!climate.valid) {
-        Serial.printf("DHT22 read failed: soil_valid=%d, raw_adc=%d\n",
-                      soil.valid, soil.rawAdc);
+  if (!connected) {
+    if (!wifiWasConnected) {
+      Serial.println("Wi-Fi disconnected");
+      wifiWasConnected = false;
+    }
+    if (WIFI_SSID[0] != '\0' && now - lastWifiRetryMs >= WIFI_RETRY_INTERVAL_MS) {
+      lastWifiRetryMs = now;
+      if (WiFi.status() != WL_IDLE_STATUS) WiFi.reconnect();
+    }
+  } else {
+    if (!wifiWasConnected) {
+      wifiWasConnected = true;
+      Serial.printf("Wi-Fi connected IP=%s RSSI=%d dBm\n",
+                    WiFi.localIP().toString().c_str(), WiFi.RSSI());
+      lastWifiRetryMs = now;
+    }
+    if (BACKEND_BASE_URL[0] != '\0') {
+      now = millis();
+      if (now - lastCommandPollMs >= COMMAND_POLL_INTERVAL_MS) {
+        lastCommandPollMs = now;
+        pollCommand();
+        enforcePumpWatchdogs(true);
       }
-      if (climate.valid) {
-        climate.temperatureC = t;
-        climate.humidityPct = h;
-      }
-      if (FLOW_SENSOR_PRESENT) {
-        noInterrupts();
-        unsigned long current = flowPulseCount;
-        interrupts();
-        unsigned long intervalPulses = current - lastFlowPulseSnapshot;
-        lastFlowPulseSnapshot = current;
-        pulseCount = current;
-        float litres = intervalPulses / FLOW_PULSES_PER_LITRE;
-        cumulativeWaterLitres += litres;
-        flowRateLpm = litres / (intervalMs / 60000.0f);
-        flowValid = true;
-
-        unsigned long flowNow = millis();
-        if (intervalPulses > 0) {
-          lastFlowPulseMs = flowNow;
-          flowFault = false;
-        } else if (pumpOn) {
-          // No pulses while pumping: sensor unplugged/miswired, or no water.
-          flowFault = (flowNow - lastFlowPulseMs) > FLOW_NO_PULSE_TIMEOUT_MS;
+      now = millis();
+      if (haveSample && (firstTelemetrySent
+          ? now - lastTelemetryMs >= TELEMETRY_INTERVAL_MS
+          : now - bootMs >= 3000UL)) {
+        lastTelemetryMs = now;
+        firstTelemetrySent = true;
+        bool ok = sendTelemetry(latestSample);
+        if (ok) {
+          lastBackendOkMs = millis();
+          commsFault = false;
+          telemetryFailStreak = 0;
         } else {
-          flowFault = false;  // zero flow with the pump off is normal
+          if (++telemetryFailStreak >= 3) commsFault = true;
         }
-        if (flowFault && !flowFaultLogged) {
-          Serial.println("WARN: pump on but no flow pulses — check flow sensor wiring / water flow");
-          flowFaultLogged = true;
-        } else if (!flowFault) {
-          flowFaultLogged = false;
-        }
+        Serial.printf("TELEMETRY: %s\n", ok ? "OK" : "FAILED");
       }
     }
-
-    bool ok = sendTelemetry(soil, climate, flowValid, flowRateLpm, pulseCount);
-    Serial.printf("REAL device=%s IP=%s telemetry=%s soil_adc=%d pump=%s\n",
-                  DEVICE_CODE, WiFi.localIP().toString().c_str(),
-                  ok ? "OK" : "FAILED", soil.rawAdc, pumpOn ? "on" : "off");
-    if (ok) {
-      telemetryFailStreak = 0;
-      commsFault = false;
-      lastBackendOkMs = now;
-    } else {
-      telemetryFailStreak++;
-      if (telemetryFailStreak >= 3) commsFault = true;
-      Serial.println("WARN: telemetry upload failed");
-    }
   }
-
+  enforcePumpWatchdogs(connected);
+  enforceMoistureControl();
   delay(50);
 }

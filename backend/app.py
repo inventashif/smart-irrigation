@@ -515,7 +515,12 @@ def telemetry_history(
     since: str | None = None,
     limit: int = 1000,
     offset: int = 0,
+    order: str = "asc",
 ):
+    order_norm = order.lower()
+    if order_norm not in ("asc", "desc"):
+        raise HTTPException(status_code=400, detail="order must be 'asc' or 'desc'")
+    sort_dir = "DESC" if order_norm == "desc" else "ASC"
     limit = max(1, min(int(limit), 5000))
     offset = max(0, int(offset))
     where = "device_code = ?"
@@ -529,7 +534,7 @@ def telemetry_history(
         total = c.execute(f"SELECT COUNT(*) AS n FROM telemetry WHERE {where}", params).fetchone()["n"]
         rows = c.execute(
             f"SELECT received_at, recorded_at, payload FROM telemetry WHERE {where}"
-            " ORDER BY id ASC LIMIT ? OFFSET ?",
+            f" ORDER BY id {sort_dir} LIMIT ? OFFSET ?",
             params + [limit, offset],
         ).fetchall()
 
